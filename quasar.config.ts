@@ -74,7 +74,7 @@ export default defineConfig(() => {
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
     framework: {
       config: {
-        dark: true, // Define o tema padrão (false = claro, true = escuro)
+        dark: false, // Define o tema padrão (false = claro, true = escuro)
       },
       iconSet: 'material-icons', // Define o conjunto de ícones a ser usado
       plugins: ['Notify'],

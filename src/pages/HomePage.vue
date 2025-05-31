@@ -63,8 +63,8 @@ const goToHome = () => {
 };
 
 const goToEventos = () => {
-  showEventos.value = true;
-  showHome.value = false;
+  showEventos.value = !showEventos.value;
+  showHome.value = !showEventos.value;
 };
 
 const toggleLogin = () => {
@@ -91,8 +91,4 @@ const doLogout = () => {
   userName.value = null;
   notifyCustom('Você foi desconectado.', 'info', 'logout');
 };
-
-// const recreateHome = () => {
-//   window.location.reload();
-// };
 </script>

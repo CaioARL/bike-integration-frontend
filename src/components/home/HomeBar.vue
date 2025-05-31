@@ -22,25 +22,35 @@
         <q-separator vertical inset class="q-mx-lg" />
 
         <div class="column items-center">
-          <q-btn
-            flat
-            round
-            dense
-            :icon="isDark ? 'dark_mode' : 'light_mode'"
-            @click="toggleDark"
-            aria-label="Alternar tema escuro"
-            class="q-mb-xl"
-          />
-          <q-avatar>
-            <q-icon name="person" size="50px" />
-          </q-avatar>
-          <div class="text-subtitle1 q-mt-md q-mb-xs">{{ props.userName || '' }}</div>
-          <q-btn
-            color="primary"
-            :label="props.loggedIn ? 'Sair' : 'Entrar'"
-            @click="toggleLogin"
-            :disable="showConfirm && props.loggedIn"
-          />
+          <div class="q-mb-xl">
+            <q-btn
+              flat
+              round
+              dense
+              :icon="isDark ? 'light_mode' : 'dark_mode'"
+              @click="toggleDark"
+              aria-label="Alternar tema"
+            />
+            <q-tooltip anchor="bottom middle" self="bottom middle" :offset="[0, 10]">
+              Alternar tema
+            </q-tooltip>
+          </div>
+
+          <div>
+            <div>
+              <q-avatar>
+                <q-icon :name="props.loggedIn ? 'person' : 'person_outline'" size="32px" />
+              </q-avatar>
+              {{ props.userName }}
+            </div>
+
+            <q-btn
+              color="primary"
+              :label="props.loggedIn ? 'Sair' : 'Entrar'"
+              @click="toggleLogin"
+              :disable="showConfirm && props.loggedIn"
+            />
+          </div>
         </div>
       </div>
       <q-dialog v-model="showConfirm">
@@ -63,12 +73,11 @@
 </template>
 
 <script lang="ts" setup>
-import { useQuasar } from 'quasar';
+import { useTheme } from 'src/composables/useTheme';
 import { notifyCustom } from 'src/services/notifyService';
-import { defineEmits, defineProps, ref, watchEffect } from 'vue';
+import { defineEmits, defineProps, ref } from 'vue';
 
-const $q = useQuasar();
-const isDark = ref($q.dark.isActive);
+const { isDark, toggleDark } = useTheme();
 
 const emit = defineEmits<{
   (e: 'toggleLogin'): void;
@@ -94,15 +103,6 @@ function handleEventos() {
   }
   emit('goToEventos');
 }
-
-function toggleDark() {
-  $q.dark.set(!$q.dark.isActive);
-  isDark.value = $q.dark.isActive;
-}
-
-watchEffect(() => {
-  isDark.value = $q.dark.isActive;
-});
 
 function toggleLogin() {
   if (!props.loggedIn) {
