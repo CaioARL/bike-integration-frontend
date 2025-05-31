@@ -3,15 +3,33 @@ import type { RouteRecordRaw } from 'vue-router';
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [{ path: '', component: () => import('pages/IndexPage.vue') }],
+    component: () => import('src/layouts/PublicMainLayout.vue'),
+    children: [{ path: '', component: () => import('src/pages/HomePage.vue') }],
   },
-
-  // Always leave this as last one,
-  // but you can also remove it
+  {
+    path: '/home',
+    component: () => import('src/layouts/PublicMainLayout.vue'),
+    children: [{ path: '', component: () => import('src/pages/HomePage.vue') }],
+  },
+  /* PUBLIC */
+  {
+    path: '/login',
+    component: () => import('src/layouts/PublicMainLayout.vue'),
+    children: [{ path: '', component: () => import('src/pages/HomePage.vue') }],
+  },
+  {
+    path: '/acesso-negado',
+    component: () => import('src/layouts/PublicMainLayout.vue'),
+    children: [{ path: '', component: () => import('src/pages/AccessDeniedPage.vue') }],
+  },
+  {
+    path: '/servico-indisponivel',
+    component: () => import('src/layouts/PublicMainLayout.vue'),
+    children: [{ path: '', component: () => import('src/pages/NetworkErrorPage.vue') }],
+  },
   {
     path: '/:catchAll(.*)*',
-    component: () => import('pages/ErrorNotFound.vue'),
+    component: () => import('src/pages/NotFoundPage.vue'),
   },
 ];
 
