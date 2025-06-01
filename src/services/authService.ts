@@ -62,8 +62,11 @@ export const getBikeAccessToken = async (usuario: AuthRequest): Promise<void> =>
   logout(); // Limpa o token de acesso antes de obter um novo
   const response: AxiosResponse<Usuario> = await api.post<Usuario>(`/login/`, usuario);
   if (response.status === 200 && response.data) {
-    setAccessToken(response.data.sessao.token);
-    setUsername(response.data.nomeUsuario);
+    if (response.data.role === 'ADMIN') {
+      setAccessToken(response.data.sessao.token);
+      setUsername(response.data.nomeUsuario);
+    }
+    window.location.href = '/acesso-negado';
     return;
   }
   throw new Error('Ocorreu um erro ao efetuar a autenticação na pasta digital');

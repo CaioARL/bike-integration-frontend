@@ -1,11 +1,37 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-page-container>
-      <router-view />
-    </q-page-container>
+  <q-layout view="hHh lpR fFf">
+    <template v-if="loading">
+      <q-page-container>
+        <q-page class="q-pa-md full-height flex flex-center">
+          <div class="fullscreen text-center q-pa-md flex flex-center bg-primary text-white">
+            <div>
+              <div class="text-h5">
+                <q-spinner color="white" size="7rem" class="q-mr-md" />
+              </div>
+            </div>
+          </div>
+        </q-page>
+      </q-page-container>
+    </template>
+
+    <template v-if="!loading">
+      <q-page-container>
+        <router-view />
+      </q-page-container>
+    </template>
   </q-layout>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+
+const loading = ref(true);
+onMounted(() => {
+  console.log('PublicMainLayout mounted');
+  setTimeout(() => {
+    loading.value = false;
+  }, 500);
+});
+</script>
 
 <style scoped lang="scss"></style>
