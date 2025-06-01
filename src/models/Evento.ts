@@ -1,21 +1,19 @@
-export interface Endereco {
-    cep: string;
-    estado: string;
-    cidade: string;
-    bairro: string;
-    rua: string;
-    numero: number;
-}
+import type { Endereco } from './Endereco';
+import type { TipoEvento } from './TipoEvento';
+import type { Usuario } from './Usuario';
 
 export interface Evento {
-    id: number;
-    nome: string;
-    descricao: string;
-    data: string; // ISO 8601 format
-    endereco: Endereco;
-    gratuito: boolean;
-    faixaKm: number;
-    urlSite?: string; // Optional property
-    idTipoEvento: number;
-    idUsuario: number;
+  id: number;
+  nome: string;
+  descricao: string;
+  data: string; // dd/MM/yyyy HH:mm:ss
+  dtAtualizacao: string;
+  endereco: Endereco;
+  gratuito: boolean;
+  faixaKm: number;
+  urlSite?: string;
+  tipoEvento: TipoEvento;
+  usuario: Usuario;
+  aprovado: boolean;
+  s3Url: string | null;
 }

@@ -11,5 +11,6 @@ export function notifyCustom(
     icon,
     position: 'top',
     timeout: 2500,
+    actions: [{ icon: 'close', color: 'white', round: true, handler: () => {} }],
   });
 }

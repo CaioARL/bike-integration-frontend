@@ -1,6 +1,6 @@
 import type { AxiosResponse } from 'axios';
 import type { AuthRequest } from 'src/models/request/AuthRequest';
-import type { AuthResponse } from 'src/models/response/AuthResponse';
+import type { Usuario } from 'src/models/Usuario';
 import api from 'src/services/axiosService';
 import { get, remove, set } from 'src/utils/sessionStorageUtils';
 
@@ -60,7 +60,7 @@ export const isPublicUrl = (): boolean => {
 
 export const getBikeAccessToken = async (usuario: AuthRequest): Promise<void> => {
   logout(); // Limpa o token de acesso antes de obter um novo
-  const response: AxiosResponse<AuthResponse> = await api.post<AuthResponse>(`/login/`, usuario);
+  const response: AxiosResponse<Usuario> = await api.post<Usuario>(`/login/`, usuario);
   if (response.status === 200 && response.data) {
     setAccessToken(response.data.sessao.token);
     setUsername(response.data.nomeUsuario);

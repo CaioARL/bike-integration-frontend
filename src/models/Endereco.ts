@@ -1,8 +1,10 @@
 export interface Endereco {
-    cep: string;
-    estado: string;
-    cidade: string;
-    bairro: string;
-    rua: string;
-    numero: number;
+  cep: string;
+  estado: string;
+  cidade: string;
+  bairro: string;
+  rua: string;
+  numero: number;
+  latitude?: number;
+  longitude?: number;
 }

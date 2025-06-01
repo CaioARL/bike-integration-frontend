@@ -5,10 +5,10 @@
         <q-avatar size="80px">
           <img src="src/assets/bicity-logo.svg" alt="Logo" />
         </q-avatar>
+        <q-tooltip anchor="bottom middle" self="bottom middle" :offset="[0, 10]">
+          Ir para a página inicial
+        </q-tooltip>
       </q-btn>
-      <q-tooltip anchor="bottom middle" self="bottom middle" :offset="[0, 10]">
-        Ir para a página inicial
-      </q-tooltip>
     </div>
 
     <q-btn-dropdown class="fixed-top-right" color="primary">
@@ -22,35 +22,33 @@
         <q-separator vertical inset class="q-mx-lg" />
 
         <div class="column items-center">
-          <div class="q-mb-xl">
-            <q-btn
-              flat
-              round
-              dense
-              :icon="isDark ? 'light_mode' : 'dark_mode'"
-              @click="toggleDark"
-              aria-label="Alternar tema"
-            />
+          <q-btn
+            flat
+            round
+            dense
+            class="q-mb-xl"
+            :icon="isDark ? 'light_mode' : 'dark_mode'"
+            @click="toggleDark"
+            aria-label="Alternar tema"
+          >
             <q-tooltip anchor="bottom middle" self="bottom middle" :offset="[0, 10]">
               Alternar tema
             </q-tooltip>
-          </div>
+          </q-btn>
 
           <div>
-            <div>
-              <q-avatar>
-                <q-icon :name="props.loggedIn ? 'person' : 'person_outline'" size="32px" />
-              </q-avatar>
-              {{ props.userName }}
-            </div>
-
-            <q-btn
-              color="primary"
-              :label="props.loggedIn ? 'Sair' : 'Entrar'"
-              @click="toggleLogin"
-              :disable="showConfirm && props.loggedIn"
-            />
+            <q-avatar>
+              <q-icon :name="props.loggedIn ? 'person' : 'person_outline'" size="32px" />
+            </q-avatar>
+            {{ props.userName }}
           </div>
+
+          <q-btn
+            color="primary"
+            :label="props.loggedIn ? 'Sair' : 'Entrar'"
+            @click="toggleLogin"
+            :disable="showConfirm && props.loggedIn"
+          />
         </div>
       </div>
       <q-dialog v-model="showConfirm">
