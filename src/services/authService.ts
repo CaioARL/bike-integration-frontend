@@ -6,6 +6,7 @@ import { get, remove, set } from 'src/utils/sessionStorageUtils';
 
 export const COOKIE_NAME_ACCESS_TOKEN: string = 'accessToken';
 export const COOKIE_NAME_USERNAME: string = 'username';
+export const COOKIE_ID_USER: string = 'idUser';
 
 export const publicUrls: string[] = ['/', '/acesso-negado', '/servico-indisponivel'];
 
@@ -25,6 +26,14 @@ export const setUsername = (username: string | null = null): void => {
   throw new Error('Ocorreu um erro ao efetuar a autenticação na pasta digital');
 };
 
+export const setIdUser = (idUser: string | null = null): void => {
+  if (idUser !== null) {
+    set(COOKIE_ID_USER, idUser, true);
+    return;
+  }
+  throw new Error('Ocorreu um erro ao efetuar a autenticação na pasta digital');
+};
+
 export const getAccessToken = (): string | null => {
   return get(COOKIE_NAME_ACCESS_TOKEN);
 };
@@ -33,14 +42,19 @@ export const getUsername = (): string | null => {
   return get(COOKIE_NAME_USERNAME);
 };
 
+export const getIdUser = (): string | null => {
+  return get(COOKIE_ID_USER);
+};
+
 export const logout = (): void => {
   remove(COOKIE_NAME_ACCESS_TOKEN);
   remove(COOKIE_NAME_USERNAME);
+  remove(COOKIE_ID_USER);
 };
 
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
-    const response: AxiosResponse<string> = await api.get<string>(`/login`);
+    const response: AxiosResponse<string> = await api.get<string>(`/login/`);
     return response.status >= 200 && response.status < 300;
   } catch (error) {
     console.error('Erro ao verificar autenticação:', error);
@@ -59,15 +73,20 @@ export const isPublicUrl = (): boolean => {
 };
 
 export const getBikeAccessToken = async (usuario: AuthRequest): Promise<void> => {
-  logout(); // Limpa o token de acesso antes de obter um novo
-  const response: AxiosResponse<Usuario> = await api.post<Usuario>(`/login/`, usuario);
-  if (response.status === 200 && response.data) {
-    if (response.data.role === 'ADMIN') {
+  try {
+    logout(); // Limpa o token de acesso antes de obter um novo
+    const response: AxiosResponse<Usuario> = await api.post<Usuario>(`/login/`, usuario);
+    if (response.status === 200 && response.data) {
+      if (response.data.role !== 'ADMIN') {
+        window.location.href = '/acesso-negado';
+        return;
+      }
       setAccessToken(response.data.sessao.token);
       setUsername(response.data.nomeUsuario);
+      setIdUser(String(response.data.id));
     }
-    window.location.href = '/acesso-negado';
-    return;
+  } catch (error) {
+    console.error('Erro ao obter o token de acesso:', error);
+    throw new Error('Ocorreu um erro ao efetuar a autenticação na pasta digital');
   }
-  throw new Error('Ocorreu um erro ao efetuar a autenticação na pasta digital');
 };

@@ -7,7 +7,7 @@ export function notifyCustom(
 ) {
   Notify.create({
     message,
-    color,
+    color: color === 'success' ? 'positive' : color, // Corrige cor de sucesso
     icon,
     position: 'top',
     timeout: 2500,

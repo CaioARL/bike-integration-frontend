@@ -27,10 +27,9 @@ import { ref, onMounted } from 'vue';
 
 const loading = ref(true);
 onMounted(() => {
-  console.log('PublicMainLayout mounted');
   setTimeout(() => {
     loading.value = false;
-  }, 500);
+  }, 1000);
 });
 </script>
 
