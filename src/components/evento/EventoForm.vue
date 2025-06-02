@@ -150,6 +150,7 @@ import { notifyCustom } from 'src/services/notifyService';
 import type { EventoFormData } from 'src/models/request/EventoFormData';
 import { getIdUser } from 'src/services/authService';
 import { getEnderecoByCep } from 'src/services/enderecoService';
+import { normalizeDateInput, formatDateForInput } from 'src/utils/dateUtils';
 
 const props = defineProps<{
   mode: 'create' | 'update';
@@ -187,60 +188,20 @@ const form = ref<
 const loading = ref(false);
 const enderecoLoading = ref(false);
 
+const formData = computed({
+  get() {
+    return formatDateForInput(form.value.data);
+  },
+  set(val: string) {
+    form.value.data = normalizeDateInput(val);
+  },
+});
+
 onMounted(async () => {
   tiposEventoOptions.value = await getTiposEvento();
   if (props.mode === 'update' && props.evento) {
     setFormFromEvento(props.evento);
   }
-});
-
-// Função utilitária para normalizar datas (aceita vários formatos e retorna ISO completo)
-function normalizeDateInput(val: string | number | null): string {
-  if (val === null || val === undefined) return '';
-  if (typeof val === 'number') val = String(val);
-  if (typeof val !== 'string') return '';
-  // yyyy-MM-ddTHH:mm:ss.SSS
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}$/.test(val)) return val;
-  // yyyy-MM-ddTHH:mm
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(val)) return val + ':00.000';
-  // yyyy-MM-dd
-  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val + 'T00:00:00.000';
-  // dd/MM/yyyy ou dd/MM/yyyyTHH:mm
-  const brDateTime = val.match(/^(\d{2})\/(\d{2})\/(\d{4})(T(\d{2}):(\d{2}))?/);
-  if (brDateTime) {
-    const [, day, month, year, , hour = '00', min = '00'] = brDateTime;
-    return `${year}-${month}-${day}T${hour}:${min}:00.000`;
-  }
-  // yyyy-MM-dd HH:mm:ss
-  if (val.includes(' ')) {
-    const [date, time] = val.split(' ');
-    return `${date}T${time || '00:00:00'}.000`;
-  }
-  return val;
-}
-
-// Sempre retorna yyyy-MM-ddTHH:mm para o input
-const formData = computed({
-  get() {
-    const d = form.value.data;
-    if (!d) return '';
-    // yyyy-MM-ddTHH:mm:ss.SSS ou yyyy-MM-ddTHH:mm:ss
-    const iso = d.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/);
-    if (iso) return `${iso[1]}T${iso[2]}:${iso[3]}`;
-    // dd/MM/yyyyTHH:mm
-    const br = d.match(/^(\d{2})\/(\d{2})\/(\d{4})T(\d{2}):(\d{2})/);
-    if (br) return `${br[3]}-${br[2]}-${br[1]}T${br[4]}:${br[5]}`;
-    // dd/MM/yyyy
-    const br2 = d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if (br2) return `${br2[3]}-${br2[2]}-${br2[1]}T00:00`;
-    // yyyy-MM-dd
-    const iso2 = d.match(/^(\d{4}-\d{2}-\d{2})$/);
-    if (iso2) return `${iso2[1]}T00:00`;
-    return d;
-  },
-  set(val: string) {
-    form.value.data = normalizeDateInput(val);
-  },
 });
 
 watch(
@@ -252,10 +213,11 @@ watch(
 );
 
 function setFormFromEvento(evento: Evento) {
+  const normalizedData = normalizeDateInput(evento.data ?? '');
   form.value = {
     nome: evento.nome,
     descricao: evento.descricao,
-    data: normalizeDateInput(evento.data ?? ''),
+    data: normalizedData,
     faixaKm: evento.faixaKm,
     urlSite: evento.urlSite || '',
     gratuito: evento.gratuito,

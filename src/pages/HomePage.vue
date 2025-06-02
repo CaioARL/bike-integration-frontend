@@ -45,26 +45,43 @@ const showEventos = ref(false); // Indica se a seção de eventos está visível
 // =====================
 onMounted(() => {
   buildHome();
+  restoreScreen();
 });
+
+// =====================
+// PERSISTÊNCIA DE TELA ATIVA
+// =====================
+const SCREEN_KEY = 'bike-active-screen';
+function saveScreen(screen: 'home' | 'eventos' | 'login') {
+  localStorage.setItem(SCREEN_KEY, screen);
+}
+function restoreScreen() {
+  const screen = localStorage.getItem(SCREEN_KEY);
+  if (screen === 'eventos') {
+    showHome.value = false;
+    showLogin.value = false;
+    showEventos.value = true;
+  } else if (screen === 'login') {
+    showHome.value = false;
+    showLogin.value = true;
+    showEventos.value = false;
+  } else {
+    showHome.value = true;
+    showLogin.value = false;
+    showEventos.value = false;
+  }
+}
 
 // =====================
 // MÉTODOS DE INICIALIZAÇÃO
 // =====================
 const buildHome = () => {
   verifyToken();
-  verifyUser();
 };
 
 const verifyToken = () => {
   const token = getAccessToken();
   isLoggedIn.value = !!token;
-};
-
-const verifyUser = () => {
-  userName.value = getUsername();
-  if (userName.value) {
-    notifyCustom(`Bem-vindo(a), ${userName.value}!`, 'info', 'person');
-  }
 };
 
 // =====================
@@ -74,17 +91,21 @@ const goToHome = () => {
   showHome.value = true;
   showLogin.value = false;
   showEventos.value = false;
+  saveScreen('home');
 };
 
 const goToEventos = () => {
   showEventos.value = !showEventos.value;
   showHome.value = !showEventos.value;
+  showLogin.value = false;
+  saveScreen(showEventos.value ? 'eventos' : 'home');
 };
 
 const toggleLogin = () => {
   showLogin.value = !showLogin.value;
   showHome.value = false;
   showEventos.value = false;
+  saveScreen(showLogin.value ? 'login' : 'home');
 };
 
 // =====================
@@ -96,6 +117,7 @@ const unauthenticated = () => {
   showEventos.value = false;
   isLoggedIn.value = false;
   userName.value = null;
+  saveScreen('login');
   notifyCustom('Login expirado, por favor, faça login novamente.', 'warning', 'warning');
 };
 
@@ -105,6 +127,7 @@ const doLogin = () => {
   showEventos.value = false;
   isLoggedIn.value = true;
   userName.value = getUsername();
+  saveScreen('home');
   notifyCustom(`Bem-vindo(a), ${userName.value}!`, 'info', 'person');
 };
 
@@ -115,6 +138,7 @@ const doLogout = () => {
   showEventos.value = false;
   isLoggedIn.value = false;
   userName.value = null;
+  saveScreen('home');
   notifyCustom('Você foi desconectado.', 'info', 'logout');
 };
 </script>

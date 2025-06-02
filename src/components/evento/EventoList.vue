@@ -1,227 +1,244 @@
 <template>
   <div>
-    <q-splitter v-model="splitterMain" vertical :limits="[15, 85]" style="height: 100%">
-      <template #before>
-        <!-- Filtros -->
-        <div
-          class="q-pa-sm q-shadow-2"
-          style="position: sticky; top: 0; z-index: 100; background: inherit"
-        >
-          <q-expansion-item
-            v-model="showSearch"
-            dense
-            class="rounded-borders shadow-1"
-            :label="showSearch ? 'Ocultar pesquisa' : 'Exibir pesquisa'"
-            :icon="showSearch ? 'expand_less' : 'expand_more'"
-          >
-            <template #header>
-              <div class="row items-center q-gutter-xs q-pa-sm">
-                <q-btn
-                  color="primary"
-                  icon="add"
-                  label="Adicionar Evento"
-                  @click.stop="openEventoForm('create')"
-                  dense
-                />
-              </div>
-            </template>
-            <q-form @submit.prevent="onFilter" class="q-pa-xs rounded-borders q-shadow-2">
-              <div class="row q-col-gutter-xs">
-                <div class="col-12 q-mb-xs">
-                  <q-input v-model="filters.nome" label="Nome" outlined dense />
-                </div>
-                <div class="col-12 q-mb-xs">
-                  <q-input v-model="filters.descricao" label="Descrição" outlined dense />
-                </div>
-                <div class="col-12 q-mb-xs">
-                  <q-input v-model="filters.cidade" label="Cidade" outlined dense />
-                </div>
-                <div class="col-12 q-mb-xs">
-                  <q-input v-model="filters.estado" label="Estado" outlined dense />
-                </div>
-                <div class="col-12 q-mb-xs">
-                  <q-input
-                    v-model="filters.data"
-                    label="Data"
-                    outlined
-                    dense
-                    type="datetime-local"
-                    @update:model-value="(val) => (filters.data = normalizeDateInput(val) || null)"
-                  />
-                </div>
-                <div class="col-12 q-mb-xs">
-                  <q-input
-                    v-model.number="filters.faixaKm"
-                    label="Faixa Km"
-                    type="number"
-                    outlined
-                    dense
-                  />
-                </div>
-                <div class="col-12 q-mb-xs">
-                  <q-select
-                    v-model="filters.tipoEventoId"
-                    :options="tiposEventoOptions"
-                    label="Tipo"
-                    option-label="nome"
-                    option-value="id"
-                    emit-value
-                    map-options
-                    outlined
-                    dense
-                  />
-                </div>
-                <div class="col-12 q-mb-xs">
-                  <q-select
-                    v-model="filters.nivelHabilidadeId"
-                    :options="niveisHabilidadeOptions"
-                    label="Nível"
-                    option-label="nome"
-                    option-value="id"
-                    emit-value
-                    map-options
-                    outlined
-                    dense
-                  />
-                </div>
-                <div class="col-12 flex items-center q-mb-xs">
-                  <q-toggle v-model="filters.gratuito" label="Gratuito" left-label dense />
-                  <q-toggle
-                    v-model="filters.aprovado"
-                    label="Aprovado"
-                    left-label
-                    class="q-ml-md"
-                    dense
-                  />
-                </div>
-                <div class="col-12 flex flex-end q-gutter-xs q-mt-xs">
-                  <q-btn
-                    class="q-mr-xs"
-                    type="button"
-                    label="Limpar"
-                    color="secondary"
-                    icon="refresh"
-                    @click="resetFilters"
-                    dense
-                  />
-                  <q-btn type="submit" label="Filtrar" color="primary" icon="search" dense />
-                </div>
-              </div>
-            </q-form>
-          </q-expansion-item>
+    <!-- Drawer de filtros para todas as telas -->
+    <q-drawer
+      v-model="showMobileFilters"
+      side="left"
+      overlay
+      behavior="mobile"
+      :width="320"
+      class="q-pa-sm q-shadow-2"
+      :breakpoint="0"
+      show-if-above
+    >
+      <div>
+        <div class="q-mb-lg flex flex-center rounded-borders">
+          <q-btn
+            color="primary"
+            icon="add"
+            label="Adicionar Evento"
+            @click="openEventoForm('create')"
+            unelevated
+            class="full-width"
+          />
         </div>
-      </template>
-      <template #after>
-        <!-- Listagem de eventos -->
-        <div>
-          <div v-if="(eventoResponse?.eventos?.length ?? 0) === 0" class="q-pa-md">
-            <q-banner>Nenhum evento encontrado.</q-banner>
-          </div>
-          <div v-else class="event-list-scroll">
-            <q-list class="q-pa-md rounded-borders">
-              <q-expansion-item
-                v-for="event in paginatedEvents"
-                :key="event.id"
-                expand-separator
-                :default-opened="false"
-                :icon="event.aprovado ? 'check_circle' : 'error'"
-                :header-class="event.aprovado ? 'text-positive' : 'text-negative'"
-                :icon-right="event.aprovado ? 'expand_more' : 'expand_less'"
-                :label="event.nome"
-                :caption="`ID: ${event.id} - Data: ${event.data}`"
-                class="q-mb-sm rounded-borders shadow-1"
-              >
-                <q-splitter v-model="splitterSizes" :limits="[30, 70]">
-                  <template #before>
-                    <div class="relative z-2 q-pa-md q-pr-md column q-gutter-y-sm">
-                      <div class="text-body1">
-                        <strong>Nome:</strong> <span>{{ event.nome }}</span>
-                      </div>
-                      <div class="text-body1">
-                        <strong>Descrição:</strong> <span>{{ event.descricao }}</span>
-                      </div>
-                      <q-expansion-item dense label="Endereço" class="q-mb-sm">
+        <q-expansion-item
+          class="q-mb-md"
+          icon="filter_list"
+          label="Filtros"
+          expand-separator
+          :default-opened="false"
+        >
+          <q-form
+            @submit="onFormSubmit"
+            @reset="resetFilters"
+            class="q-pa-xs rounded-borders q-shadow-2"
+          >
+            <q-input v-model="filters.nome" label="Nome" outlined dense />
+            <q-input v-model="filters.descricao" label="Descrição" outlined dense />
+            <q-input v-model="filters.cidade" label="Cidade" outlined dense />
+            <q-input v-model="filters.estado" label="Estado" outlined dense />
+            <q-input v-model="filters.data" label="Data" type="datetime-local" outlined dense />
+            <q-input
+              v-model.number="filters.faixaKm"
+              label="Faixa Km"
+              type="number"
+              outlined
+              dense
+            />
+            <q-select
+              v-model="filters.tipoEventoId"
+              :options="tiposEventoOptions"
+              label="Tipo"
+              option-label="nome"
+              option-value="id"
+              emit-value
+              map-options
+              outlined
+              dense
+            />
+            <q-select
+              v-model="filters.nivelHabilidadeId"
+              :options="niveisHabilidadeOptions"
+              label="Nível"
+              option-label="nome"
+              option-value="id"
+              emit-value
+              map-options
+              outlined
+              dense
+            />
+            <q-toggle v-model="filters.gratuito" label="Gratuito" left-label />
+            <q-toggle v-model="filters.aprovado" label="Aprovado" left-label class="q-ml-md" />
+
+            <div>
+              <q-btn label="Filtrar" type="submit" color="primary" />
+              <q-btn label="Limpar" type="reset" color="primary" flat class="q-ml-sm" />
+            </div>
+          </q-form>
+        </q-expansion-item>
+      </div>
+    </q-drawer>
+
+    <!-- Botão flutuante para abrir filtros -->
+    <q-btn
+      class="q-mb-md q-ml-md"
+      color="primary"
+      icon="filter_list"
+      round
+      dense
+      @click="showMobileFilters = true"
+      style="position: fixed; top: 1rem; left: 1rem; z-index: 2000"
+    >
+      <q-tooltip v-if="!$q.platform.is.mobile"> Menu de eventos </q-tooltip>
+    </q-btn>
+
+    <!-- Lista de eventos -->
+    <div style="position: relative; min-height: 120px">
+      <div class="flex justify-center items-center" v-if="isLoading">
+        <q-spinner-hourglass color="primary" size="3em" />
+      </div>
+      <div v-if="(eventoResponse?.eventos?.length ?? 0) === 0 && !isLoading" class="q-pa-md">
+        <q-banner>Nenhum evento encontrado.</q-banner>
+      </div>
+      <div v-else-if="!isLoading" class="event-list-scroll">
+        <q-list class="q-pa-md rounded-borders">
+          <q-expansion-item
+            v-for="event in paginatedEvents"
+            :key="event.id"
+            expand-separator
+            :default-opened="false"
+            :icon="event.aprovado ? 'check_circle' : 'error'"
+            :header-class="event.aprovado ? 'text-positive' : 'text-negative'"
+            :icon-right="event.aprovado ? 'expand_more' : 'expand_less'"
+            :label="event.nome"
+            :caption="`ID: ${event.id} - Data: ${event.data}`"
+            class="q-mb-sm rounded-borders shadow-1"
+            :model-value="expandedEvents.has(event.id)"
+            @update:model-value="
+              (val) => {
+                if (val) expandedEvents.add(event.id);
+                else expandedEvents.delete(event.id);
+              }
+            "
+          >
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-md-5 order-md-1 order-2">
+                <div class="relative z-2 q-pa-md q-pr-md column q-gutter-y-sm">
+                  <div class="text-body1">
+                    <strong>Nome:</strong> <span>{{ event.nome }}</span>
+                  </div>
+                  <div class="text-body1">
+                    <strong>Descrição:</strong> <span>{{ event.descricao }}</span>
+                  </div>
+                  <q-expansion-item dense label="Endereço" class="q-mb-sm">
+                    <div class="q-ml-md">
+                      <div><strong>CEP:</strong> {{ event.endereco.cep }}</div>
+                      <div><strong>Estado:</strong> {{ event.endereco.estado }}</div>
+                      <div><strong>Cidade:</strong> {{ event.endereco.cidade }}</div>
+                      <div><strong>Bairro:</strong> {{ event.endereco.bairro }}</div>
+                      <div><strong>Rua:</strong> {{ event.endereco.rua }}</div>
+                      <div><strong>Número:</strong> {{ event.endereco.numero }}</div>
+                      <div><strong>Latitude:</strong> {{ event.endereco.latitude }}</div>
+                      <div><strong>Longitude:</strong> {{ event.endereco.longitude }}</div>
+                    </div>
+                  </q-expansion-item>
+                  <q-expansion-item dense label="Usuário" class="q-mb-sm">
+                    <div class="q-ml-md">
+                      <div><strong>Nome:</strong> {{ event.usuario.nome }}</div>
+                      <div><strong>Email:</strong> {{ event.usuario.email }}</div>
+                      <div><strong>CNPJ:</strong> {{ event.usuario.cnpj }}</div>
+                      <q-expansion-item
+                        v-if="event.usuario.endereco"
+                        dense
+                        label="Endereço"
+                        class="q-mb-sm"
+                      >
                         <div class="q-ml-md">
-                          <div><strong>CEP:</strong> {{ event.endereco.cep }}</div>
-                          <div><strong>Estado:</strong> {{ event.endereco.estado }}</div>
-                          <div><strong>Cidade:</strong> {{ event.endereco.cidade }}</div>
-                          <div><strong>Bairro:</strong> {{ event.endereco.bairro }}</div>
-                          <div><strong>Rua:</strong> {{ event.endereco.rua }}</div>
-                          <div><strong>Número:</strong> {{ event.endereco.numero }}</div>
-                          <div><strong>Latitude:</strong> {{ event.endereco.latitude }}</div>
-                          <div><strong>Longitude:</strong> {{ event.endereco.longitude }}</div>
+                          <div><strong>CEP:</strong> {{ event.usuario.endereco.cep }}</div>
+                          <div><strong>Estado:</strong> {{ event.usuario.endereco.estado }}</div>
+                          <div><strong>Cidade:</strong> {{ event.usuario.endereco.cidade }}</div>
+                          <div><strong>Bairro:</strong> {{ event.usuario.endereco.bairro }}</div>
+                          <div><strong>Rua:</strong> {{ event.usuario.endereco.rua }}</div>
+                          <div><strong>Número:</strong> {{ event.usuario.endereco.numero }}</div>
                         </div>
                       </q-expansion-item>
-                      <div class="text-body1">
-                        <strong>Gratuito:</strong> <span>{{ event.gratuito ? 'Sim' : 'Não' }}</span>
-                      </div>
-                      <div class="text-body1">
-                        <strong>Faixa Km:</strong> <span>{{ event.faixaKm }}</span>
-                      </div>
-                      <div class="text-body1">
-                        <strong>Tipo de Evento:</strong> <span>{{ event.tipoEvento?.nome }}</span>
-                      </div>
-                      <div class="text-body1">
-                        <strong>Aprovado:</strong> <span>{{ event.aprovado ? 'Sim' : 'Não' }}</span>
-                      </div>
-                      <div v-if="event.urlSite" class="text-body1">
-                        <strong>Site:</strong>
-                        <a :href="event.urlSite" target="_blank" class="text-primary underline">{{
-                          event.urlSite
-                        }}</a>
-                      </div>
-                      <div class="q-mt-md flex q-gutter-sm">
-                        <q-btn
-                          color="info"
-                          icon="edit"
-                          label="Atualizar"
-                          dense
-                          @click="openEventoForm('update', event)"
-                        />
-                        <q-btn
-                          v-if="!event.aprovado"
-                          color="positive"
-                          icon="check"
-                          label="Aprovar"
-                          dense
-                          @click="aprovar(event)"
-                        />
-                        <q-btn
-                          v-if="!event.aprovado"
-                          color="negative"
-                          icon="delete"
-                          label="Excluir"
-                          dense
-                          @click="askExcluir(event)"
-                        />
-                        <q-btn
-                          v-if="event.aprovado"
-                          color="warning"
-                          icon="close"
-                          label="Recusar"
-                          dense
-                          @click="recusar(event)"
-                        />
-                      </div>
                     </div>
-                  </template>
-                  <template #after>
-                    <div v-if="event.endereco.latitude && event.endereco.longitude">
-                      <iframe
-                        :src="`https://www.openstreetmap.org/export/embed.html?bbox=${event.endereco.longitude - 0.0015},${event.endereco.latitude - 0.001},${event.endereco.longitude + 0.0015},${event.endereco.latitude + 0.001}&layer=mapnik&marker=${event.endereco.latitude},${event.endereco.longitude}`"
-                        style="width: 100%; height: 40vh"
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade"
-                      ></iframe>
-                    </div>
-                  </template>
-                </q-splitter>
-              </q-expansion-item>
-            </q-list>
-          </div>
-        </div>
-      </template>
-    </q-splitter>
+                  </q-expansion-item>
+                  <div class="text-body1">
+                    <strong>Gratuito:</strong> <span>{{ event.gratuito ? 'Sim' : 'Não' }}</span>
+                  </div>
+                  <div class="text-body1">
+                    <strong>Faixa Km:</strong> <span>{{ event.faixaKm }}</span>
+                  </div>
+                  <div class="text-body1">
+                    <strong>Tipo de Evento:</strong> <span>{{ event.tipoEvento?.nome }}</span>
+                  </div>
+                  <div class="text-body1">
+                    <strong>Aprovado:</strong> <span>{{ event.aprovado ? 'Sim' : 'Não' }}</span>
+                  </div>
+                  <div v-if="event.urlSite" class="text-body1">
+                    <strong>Site:</strong>
+                    <a :href="event.urlSite" target="_blank" class="text-primary underline">{{
+                      event.urlSite
+                    }}</a>
+                  </div>
+                  <div class="q-mt-md flex q-gutter-sm">
+                    <q-btn
+                      color="info"
+                      icon="edit"
+                      label="Atualizar"
+                      dense
+                      @click="openEventoForm('update', event)"
+                    />
+                    <q-btn
+                      v-if="!event.aprovado"
+                      color="positive"
+                      icon="check"
+                      label="Aprovar"
+                      dense
+                      @click="aprovar(event)"
+                    />
+                    <q-btn
+                      v-if="!event.aprovado"
+                      color="negative"
+                      icon="delete"
+                      label="Excluir"
+                      dense
+                      @click="askExcluir(event)"
+                    />
+                    <q-btn
+                      v-if="event.aprovado"
+                      color="warning"
+                      icon="close"
+                      label="Recusar"
+                      dense
+                      @click="recusar(event)"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div
+                v-if="
+                  event.endereco.latitude &&
+                  event.endereco.longitude &&
+                  expandedEvents.has(event.id)
+                "
+                class="col-12 col-md-7 order-md-2 order-1 flex flex-center"
+              >
+                <div class="q-pa-xs" style="width: 100%">
+                  <custom-map-viewer
+                    :latitude="event.endereco.latitude"
+                    :longitude="event.endereco.longitude"
+                    :nome-evento="event.nome"
+                  />
+                </div>
+              </div>
+            </div>
+          </q-expansion-item>
+        </q-list>
+      </div>
+    </div>
 
     <!-- Footer com paginação -->
     <q-footer class="q-shadow-1">
@@ -289,8 +306,9 @@ import { aprovarEvento, excluirEvento, getEventos } from 'src/services/eventoSer
 import { isAuthenticated } from 'src/services/authService';
 import { getNiveisHabilidade } from 'src/services/nivelHabilidadeService';
 import { getTiposEvento } from 'src/services/tipoEventoService';
-import { ref, computed, onMounted, defineEmits } from 'vue';
+import { ref, computed, onMounted, defineEmits, watch } from 'vue';
 import EventoForm from './EventoForm.vue';
+import * as sessionUtils from 'src/utils/sessionStorageUtils';
 
 // Filtros padrão para pesquisa de eventos
 const defaultFilters = {
@@ -321,17 +339,76 @@ const eventToDelete = ref<Evento | null>(null);
 const showEventoForm = ref(false);
 const eventoFormMode = ref<'create' | 'update'>('create');
 const eventoToEdit = ref<Evento | null>(null);
-const splitterSizes = ref(60);
-const showSearch = ref(true);
-const splitterMain = ref(15);
+const showMobileFilters = ref(false);
+const isLoading = ref(false);
+
+// IDs dos eventos expandidos
+const expandedEvents = ref<Set<number>>(new Set());
 
 const emit = defineEmits<{ (e: 'unauthenticated'): void }>();
 
+const STORAGE_KEY = 'eventoListState';
+const EXPANDED_KEY = 'eventoListExpanded';
+
+function saveState() {
+  const state = {
+    filters: filters.value,
+    currentPage: currentPage.value,
+    eventoResponse: eventoResponse.value,
+  };
+  sessionUtils.set(STORAGE_KEY, JSON.stringify(state));
+  sessionUtils.set(EXPANDED_KEY, JSON.stringify(Array.from(expandedEvents.value)));
+}
+
+function restoreState() {
+  const raw = sessionUtils.get(STORAGE_KEY);
+  const expandedRaw = sessionUtils.get(EXPANDED_KEY);
+  if (raw) {
+    try {
+      const state = JSON.parse(raw);
+      if (state.filters) Object.assign(filters.value, state.filters);
+      if (state.currentPage) currentPage.value = state.currentPage;
+      if (state.eventoResponse) eventoResponse.value = state.eventoResponse;
+      if (expandedRaw) {
+        const expandedArr = JSON.parse(expandedRaw);
+        expandedEvents.value = new Set(expandedArr);
+      }
+      return true;
+    } catch {
+      console.error('Erro ao restaurar estado:', raw);
+      sessionUtils.remove(STORAGE_KEY);
+      sessionUtils.remove(EXPANDED_KEY);
+      return false;
+    }
+  }
+  return false;
+}
+
+// Salva estado sempre que filtros, página, eventos ou eventos expandidos mudam
+watch([filters, currentPage, eventoResponse, expandedEvents], saveState, { deep: true });
+
 onMounted(async () => {
+  const restored = restoreState();
   await verifyLogin();
   await fetchTiposEvento();
   await fetchNiveisHabilidade();
-  await onFilter();
+  if (restored) {
+    console.log(
+      'Estado restaurado com sucesso:',
+      filters.value,
+      currentPage.value,
+      eventoResponse.value,
+    );
+    // Se restaurou estado, busca eventos na página correta
+    const eventoRequest: EventoRequest = {
+      ...filters.value,
+      tipoEvento: filters.value.tipoEventoId,
+      nivelHabilidade: filters.value.nivelHabilidadeId,
+    };
+    await fetchEventos(eventoRequest);
+  } else {
+    await onFilter();
+  }
 });
 
 // Verifica autenticação do usuário
@@ -360,10 +437,13 @@ const fetchNiveisHabilidade = async () => {
 // Busca eventos conforme filtros
 const fetchEventos = async (request: EventoRequest) => {
   await verifyLogin();
+  isLoading.value = true;
   try {
     eventoResponse.value = await getEventos(request);
   } catch (error) {
     console.error('Erro ao buscar eventos:', error);
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -420,6 +500,7 @@ const confirmDelete = async () => {
 const excluir = async (event: Evento) => {
   try {
     await excluirEvento(event.id);
+    expandedEvents.value.delete(event.id); // Remove da lista de expandidos
     await onFilter();
   } catch (error) {
     console.error('Erro ao excluir evento:', error);
@@ -436,22 +517,42 @@ const closeEventoForm = () => {
   showEventoForm.value = false;
   eventoToEdit.value = null;
 };
-const onEventoAtualizado = async () => {
-  await onFilter();
+const onEventoAtualizado = async (event?: Evento) => {
+  const expandId = event?.id;
+  await onFilter(expandId);
   closeEventoForm();
 };
 
 // Filtros e paginação
-const onFilter = async () => {
+const onFormSubmit = async () => {
   filters.value.pagina = 1;
   currentPage.value = 1;
+  await onFilter();
+};
+
+const onFilter = async (expandId?: number) => {
+  // Sempre use a página salva no localStorage
+  const raw = sessionStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try {
+      const state = JSON.parse(raw);
+      if (state.currentPage) currentPage.value = state.currentPage;
+      if (state.filters) Object.assign(filters.value, state.filters);
+    } catch {
+      // ignora erro
+    }
+  }
   const eventoRequest: EventoRequest = {
     ...filters.value,
     tipoEvento: filters.value.tipoEventoId,
     nivelHabilidade: filters.value.nivelHabilidadeId,
   };
   await fetchEventos(eventoRequest);
+  if (expandId) {
+    expandedEvents.value = new Set([expandId]);
+  }
 };
+
 const resetFilters = () => {
   Object.assign(filters.value, defaultFilters);
   currentPage.value = 1;
@@ -470,14 +571,6 @@ const totalPages = computed(() =>
   Math.ceil((eventoResponse.value?.totalRegistros ?? 0) / rowsPerPage),
 );
 const paginatedEvents = computed<Evento[]>(() => eventoResponse.value?.eventos ?? []);
-
-// Normaliza data para input datetime-local
-const normalizeDateInput = (val: string | number | null): string => {
-  if (val === null) return '';
-  const date = new Date(val);
-  if (isNaN(date.getTime())) return '';
-  return date.toISOString().slice(0, 16);
-};
 </script>
 
 <style scoped>
@@ -510,10 +603,10 @@ body.body--light .q-banner {
 }
 
 .event-list-scroll {
-  height: calc(100vh - 100px);
+  height: calc(100dvh - 6.1rem);
   overflow-y: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE 10+ */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   overscroll-behavior: contain;
 }
 .event-list-scroll::-webkit-scrollbar {

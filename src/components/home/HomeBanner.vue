@@ -1,25 +1,22 @@
 <template>
-  <div class="flex flex-center min-h-screen q-pa-sm">
-    <div
-      :class="[
-        'row items-center justify-center q-pa-xl q-gutter-x-lg rounded-borders shadow-24',
-        isDark ? 'animated-gradient-dark' : 'animated-gradient-light',
-      ]"
+  <div class="flex flex-center q-pt-xl">
+    <q-card
+      :class="isDark ? 'animated-gradient-dark' : 'animated-gradient-light'"
+      class="q-pa-xl rounded-borders shadow-24 flex flex-column items-center justify-center"
       style="min-width: 300px; max-width: 90vw; max-height: 80vh; width: 100%"
     >
-      <img
-        src="src/assets/bicity-logo.svg"
-        alt="Bicity Logo"
-        class="q-mb-md"
-        style="max-width: 60vw; max-height: 25vh"
-      />
-      <div>
-        <h1 class="q-mb-xs text-h3 text-bold">Bem-vindo ao BiCity!</h1>
-        <p class="text-subtitle1">
-          O app feito para quem pedala: eventos e integração para ciclistas.
-        </p>
-      </div>
-    </div>
+      <q-card-section class="flex flex-center">
+        <img
+          src="src/assets/bicity-logo.svg"
+          alt="Bicity Logo"
+          class="q-mb-md"
+          style="max-width: 60vw; max-height: 25vh"
+        />
+      </q-card-section>
+      <q-card-section class="flex flex-center flex-column q-pa-none">
+        <div class="text-h3 text-bold text-center q-mb-xs">Bem-vindo ao BiCity!</div>
+      </q-card-section>
+    </q-card>
   </div>
 </template>
 
