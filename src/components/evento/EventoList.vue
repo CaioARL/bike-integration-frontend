@@ -106,6 +106,7 @@
           <q-expansion-item
             v-for="event in paginatedEvents"
             :key="event.id"
+            :ref="expansionItemRef(event.id)"
             expand-separator
             :default-opened="false"
             :icon="event.aprovado ? 'check_circle' : 'error'"
@@ -297,6 +298,7 @@
 </template>
 
 <script setup lang="ts">
+// -------------------- IMPORTS --------------------
 import type { Evento } from 'src/models/Evento';
 import type { NivelHabilidade } from 'src/models/NivelHabilidade';
 import type { EventoRequest } from 'src/models/request/EventoRequest';
@@ -306,51 +308,90 @@ import { aprovarEvento, excluirEvento, getEventos } from 'src/services/eventoSer
 import { isAuthenticated } from 'src/services/authService';
 import { getNiveisHabilidade } from 'src/services/nivelHabilidadeService';
 import { getTiposEvento } from 'src/services/tipoEventoService';
-import { ref, computed, onMounted, defineEmits, watch } from 'vue';
+import { ref, computed, onMounted, defineEmits, watch, nextTick } from 'vue';
 import EventoForm from './EventoForm.vue';
 import * as sessionUtils from 'src/utils/sessionStorageUtils';
 
-// Filtros padrão para pesquisa de eventos
+// -------------------- CONSTANTES E VARIÁVEIS --------------------
 const defaultFilters = {
-  pagina: 1,
-  nome: null,
-  descricao: null,
-  data: null as string | null,
-  cidade: null,
-  estado: null,
-  faixaKm: null,
-  tipoEventoId: null as number | null,
-  nivelHabilidadeId: null as number | null,
-  gratuito: null,
-  aprovado: null,
+  pagina: 1, // página atual da paginação
+  nome: null, // filtro por nome
+  descricao: null, // filtro por descrição
+  data: null as string | null, // filtro por data
+  cidade: null, // filtro por cidade
+  estado: null, // filtro por estado
+  faixaKm: null, // filtro por faixa de km
+  tipoEventoId: null as number | null, // filtro por tipo de evento
+  nivelHabilidadeId: null as number | null, // filtro por nível de habilidade
+  gratuito: null, // filtro por gratuidade
+  aprovado: null, // filtro por aprovação
 };
-const filters = ref({ ...defaultFilters });
+const filters = ref({ ...defaultFilters }); // filtros ativos
 
-const eventoResponse = ref<EventoResponse>();
-const tiposEventoOptions = ref<TipoEvento[]>([]);
-const niveisHabilidadeOptions = ref<NivelHabilidade[]>([]);
-const currentPage = ref(1);
-const rowsPerPage = 50;
-const showConfirmDelete = ref(false);
-const deleteProgress = ref(0);
-let deleteTimer: ReturnType<typeof setInterval> | null = null;
-const DELETE_DURATION = 5000; // 5 segundos
-const eventToDelete = ref<Evento | null>(null);
-const showEventoForm = ref(false);
-const eventoFormMode = ref<'create' | 'update'>('create');
-const eventoToEdit = ref<Evento | null>(null);
-const showMobileFilters = ref(false);
-const isLoading = ref(false);
+const eventoResponse = ref<EventoResponse>(); // response da chamada ao serviço de listagem de eventos
+const tiposEventoOptions = ref<TipoEvento[]>([]); // opções de tipos de evento
+const niveisHabilidadeOptions = ref<NivelHabilidade[]>([]); // opções de níveis de habilidade
+const currentPage = ref(1); // página atual
+const rowsPerPage = 50; // quantidade de linhas por página
+const showConfirmDelete = ref(false); // exibe diálogo de confirmação de exclusão
+const deleteProgress = ref(0); // progresso da barra de exclusão
+let deleteTimer: ReturnType<typeof setInterval> | null = null; // timer para exclusão
+const DELETE_DURATION = 5000; // duração da barra de exclusão (ms)
+const eventToDelete = ref<Evento | null>(null); // evento a ser excluído
+const showEventoForm = ref(false); // exibe formulário de evento
+const eventoFormMode = ref<'create' | 'update'>('create'); // modo do formulário de evento
+const eventoToEdit = ref<Evento | null>(null); // evento em edição
+const showMobileFilters = ref(false); // exibe drawer de filtros no mobile
+const isLoading = ref(false); // status de carregamento
+const expandedEvents = ref<Set<number>>(new Set()); // eventos expandidos
+const expansionRefs = ref<Record<number, HTMLElement | null>>({}); // refs dos expansion items
+const emit = defineEmits<{ (e: 'unauthenticated'): void }>(); // emit para eventos do componente
+const STORAGE_KEY = 'eventoListState'; // chave de storage para filtros e paginação
+const EXPANDED_KEY = 'eventoListExpanded'; // chave de storage para eventos expandidos
 
-// IDs dos eventos expandidos
-const expandedEvents = ref<Set<number>>(new Set());
+// -------------------- ONMOUNTED --------------------
+onMounted(async () => {
+  const restored = restoreState();
+  await verifyLogin();
+  await fetchTiposEvento();
+  await fetchNiveisHabilidade();
+  if (restored) {
+    console.log(
+      'Estado restaurado com sucesso:',
+      filters.value,
+      currentPage.value,
+      eventoResponse.value,
+    );
+    await fetchEventos(buildEventoRequest());
+    const expandedId = Array.from(expandedEvents.value).at(-1);
+    if (typeof expandedId === 'number') {
+      await nextTick();
+      await scrollToExpandedEvent(expandedId);
+    }
+  } else {
+    await onFilter();
+  }
+});
 
-const emit = defineEmits<{ (e: 'unauthenticated'): void }>();
+// -------------------- MÉTODOS --------------------
+const expansionItemRef = (eventId: number) => (el: Element | { $el?: Element } | null) => {
+  if (el && typeof el === 'object' && '$el' in el && el.$el instanceof HTMLElement) {
+    expansionRefs.value[eventId] = el.$el;
+  } else if (el instanceof HTMLElement) {
+    expansionRefs.value[eventId] = el;
+  } else {
+    expansionRefs.value[eventId] = null;
+  }
+};
 
-const STORAGE_KEY = 'eventoListState';
-const EXPANDED_KEY = 'eventoListExpanded';
+const scrollToExpandedEvent = async (eventId: number) => {
+  await nextTick();
+  if (expansionRefs.value[eventId]) {
+    expansionRefs.value[eventId].scrollIntoView({ behavior: 'auto', block: 'center' });
+  }
+};
 
-function saveState() {
+const saveState = () => {
   const state = {
     filters: filters.value,
     currentPage: currentPage.value,
@@ -358,9 +399,9 @@ function saveState() {
   };
   sessionUtils.set(STORAGE_KEY, JSON.stringify(state));
   sessionUtils.set(EXPANDED_KEY, JSON.stringify(Array.from(expandedEvents.value)));
-}
+};
 
-function restoreState() {
+const restoreState = () => {
   const raw = sessionUtils.get(STORAGE_KEY);
   const expandedRaw = sessionUtils.get(EXPANDED_KEY);
   if (raw) {
@@ -382,41 +423,12 @@ function restoreState() {
     }
   }
   return false;
-}
+};
 
-// Salva estado sempre que filtros, página, eventos ou eventos expandidos mudam
-watch([filters, currentPage, eventoResponse, expandedEvents], saveState, { deep: true });
-
-onMounted(async () => {
-  const restored = restoreState();
-  await verifyLogin();
-  await fetchTiposEvento();
-  await fetchNiveisHabilidade();
-  if (restored) {
-    console.log(
-      'Estado restaurado com sucesso:',
-      filters.value,
-      currentPage.value,
-      eventoResponse.value,
-    );
-    // Se restaurou estado, busca eventos na página correta
-    const eventoRequest: EventoRequest = {
-      ...filters.value,
-      tipoEvento: filters.value.tipoEventoId,
-      nivelHabilidade: filters.value.nivelHabilidadeId,
-    };
-    await fetchEventos(eventoRequest);
-  } else {
-    await onFilter();
-  }
-});
-
-// Verifica autenticação do usuário
 const verifyLogin = async () => {
   if (!(await isAuthenticated())) emit('unauthenticated');
 };
 
-// Busca opções de tipos de evento
 const fetchTiposEvento = async () => {
   try {
     tiposEventoOptions.value = await getTiposEvento();
@@ -425,7 +437,6 @@ const fetchTiposEvento = async () => {
   }
 };
 
-// Busca opções de níveis de habilidade
 const fetchNiveisHabilidade = async () => {
   try {
     niveisHabilidadeOptions.value = await getNiveisHabilidade();
@@ -434,7 +445,6 @@ const fetchNiveisHabilidade = async () => {
   }
 };
 
-// Busca eventos conforme filtros
 const fetchEventos = async (request: EventoRequest) => {
   await verifyLogin();
   isLoading.value = true;
@@ -447,7 +457,6 @@ const fetchEventos = async (request: EventoRequest) => {
   }
 };
 
-// Aprova ou recusa evento
 const aprovar = async (event: Evento) => {
   try {
     await aprovarEvento(event.id, true);
@@ -456,6 +465,7 @@ const aprovar = async (event: Evento) => {
     console.error('Erro ao aprovar evento:', error);
   }
 };
+
 const recusar = async (event: Evento) => {
   try {
     await aprovarEvento(event.id, false);
@@ -465,7 +475,6 @@ const recusar = async (event: Evento) => {
   }
 };
 
-// Exibe diálogo de confirmação para exclusão
 const askExcluir = (event: Evento) => {
   eventToDelete.value = event;
   showConfirmDelete.value = true;
@@ -479,7 +488,6 @@ const askExcluir = (event: Evento) => {
   }, interval);
 };
 
-// Cancela exclusão
 const cancelDelete = () => {
   showConfirmDelete.value = false;
   deleteProgress.value = 0;
@@ -490,13 +498,11 @@ const cancelDelete = () => {
   }
 };
 
-// Confirma exclusão
 const confirmDelete = async () => {
   if (eventToDelete.value) await excluir(eventToDelete.value);
   cancelDelete();
 };
 
-// Exclui evento
 const excluir = async (event: Evento) => {
   try {
     await excluirEvento(event.id);
@@ -507,23 +513,31 @@ const excluir = async (event: Evento) => {
   }
 };
 
-// Abre formulário de evento (criação/edição)
 const openEventoForm = (mode: 'create' | 'update', evento: Evento | null = null) => {
   eventoFormMode.value = mode;
   eventoToEdit.value = evento;
   showEventoForm.value = true;
 };
+
 const closeEventoForm = () => {
   showEventoForm.value = false;
   eventoToEdit.value = null;
 };
+
 const onEventoAtualizado = async (event?: Evento) => {
   const expandId = event?.id;
   await onFilter(expandId);
   closeEventoForm();
 };
 
-// Filtros e paginação
+const buildEventoRequest = (): EventoRequest => {
+  return {
+    ...filters.value,
+    tipoEvento: filters.value.tipoEventoId ?? null,
+    nivelHabilidade: filters.value.nivelHabilidadeId ?? null,
+  };
+};
+
 const onFormSubmit = async () => {
   filters.value.pagina = 1;
   currentPage.value = 1;
@@ -531,7 +545,6 @@ const onFormSubmit = async () => {
 };
 
 const onFilter = async (expandId?: number) => {
-  // Sempre use a página salva no localStorage
   const raw = sessionStorage.getItem(STORAGE_KEY);
   if (raw) {
     try {
@@ -542,12 +555,7 @@ const onFilter = async (expandId?: number) => {
       // ignora erro
     }
   }
-  const eventoRequest: EventoRequest = {
-    ...filters.value,
-    tipoEvento: filters.value.tipoEventoId,
-    nivelHabilidade: filters.value.nivelHabilidadeId,
-  };
-  await fetchEventos(eventoRequest);
+  await fetchEventos(buildEventoRequest());
   if (expandId) {
     expandedEvents.value = new Set([expandId]);
   }
@@ -557,20 +565,28 @@ const resetFilters = () => {
   Object.assign(filters.value, defaultFilters);
   currentPage.value = 1;
 };
+
 const handlePageChange = async (page: number) => {
   filters.value.pagina = page;
   currentPage.value = page;
-  const eventoRequest: EventoRequest = {
-    ...filters.value,
-    tipoEvento: filters.value.tipoEventoId,
-    nivelHabilidade: filters.value.nivelHabilidadeId,
-  };
-  await fetchEventos(eventoRequest);
+  await fetchEventos(buildEventoRequest());
 };
+
+// -------------------- WATCHS --------------------
+watch([filters, currentPage, eventoResponse, expandedEvents], saveState, { deep: true });
+watch([eventoResponse, expandedEvents], async ([response, expanded]) => {
+  const expandedId = Array.from(expanded).at(-1);
+  if (typeof expandedId === 'number' && response?.eventos?.some((e) => e.id === expandedId)) {
+    await nextTick();
+    await scrollToExpandedEvent(expandedId);
+  }
+});
+
+// -------------------- COMPUTEDS --------------------
 const totalPages = computed(() =>
   Math.ceil((eventoResponse.value?.totalRegistros ?? 0) / rowsPerPage),
-);
-const paginatedEvents = computed<Evento[]>(() => eventoResponse.value?.eventos ?? []);
+); // total de páginas
+const paginatedEvents = computed<Evento[]>(() => eventoResponse.value?.eventos ?? []); // eventos paginados
 </script>
 
 <style scoped>

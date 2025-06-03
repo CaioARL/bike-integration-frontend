@@ -20,7 +20,6 @@ const props = defineProps<{
   nomeEvento?: string;
 }>();
 
-// Gera um id único para cada instância do mapa
 const mapId = `map-viewer-${Math.random().toString(36).substr(2, 9)}`;
 
 onMounted(async () => {
