@@ -47,7 +47,12 @@
           dense
           class="gray-form q-mb-sm"
         />
-        <q-toggle v-model="form.gratuito" label="Gratuito" left-label class="gray-toggle q-mb-sm" />
+        <q-toggle
+          v-model="form.gratuito"
+          label="Gratuito"
+          left-label
+          class="gray-toggle q-mb-sm q-pa-sm"
+        />
         <q-select
           v-model="form.idTipoEvento"
           :options="tiposEventoOptions"
@@ -61,7 +66,7 @@
           class="gray-form q-mb-sm"
           required
         />
-        <q-expansion-item label="Endereço" class="q-mb-sm gray-form" expand-separator>
+        <q-expansion-item label="Endereço" class="q-mb-sm" expand-separator>
           <div class="row q-col-gutter-sm">
             <div class="col-12 col-md-6">
               <q-input
@@ -141,6 +146,7 @@
 </template>
 
 <script setup lang="ts">
+// -------------------- IMPORTS --------------------
 import { defineEmits, ref, watch, onMounted, computed } from 'vue';
 import type { Evento } from 'src/models/Evento';
 import type { TipoEvento } from 'src/models/TipoEvento';
@@ -152,16 +158,16 @@ import { getIdUser } from 'src/services/authService';
 import { getEnderecoByCep } from 'src/services/enderecoService';
 import { normalizeDateInput, formatDateForInput } from 'src/utils/dateUtils';
 
+// -------------------- CONSTS--------------------
 const props = defineProps<{
   mode: 'create' | 'update';
   evento: Evento | null;
 }>();
+
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'eventoAtualizado'): void;
 }>();
-
-const tiposEventoOptions = ref<TipoEvento[]>([]);
 
 const defaultEndereco = {
   cidade: '',
@@ -173,6 +179,7 @@ const defaultEndereco = {
   rua: '',
   numero: '',
 };
+
 const form = ref<
   Omit<EventoFormData, 'nivelHabilidadeId' | 'tipoEventoId'> & { idTipoEvento: number | null }
 >({
@@ -185,18 +192,12 @@ const form = ref<
   idTipoEvento: null,
   endereco: { ...defaultEndereco },
 });
-const loading = ref(false);
-const enderecoLoading = ref(false);
 
-const formData = computed({
-  get() {
-    return formatDateForInput(form.value.data);
-  },
-  set(val: string) {
-    form.value.data = normalizeDateInput(val);
-  },
-});
+const tiposEventoOptions = ref<TipoEvento[]>([]); // Endereço padrão para inicialização do formulário
+const loading = ref(false); // Status de loading do campo de endereço (CEP)
+const enderecoLoading = ref(false); // boolean para indicar se o CEP está sendo buscado
 
+// -------------------- ONMOUNTED --------------------
 onMounted(async () => {
   tiposEventoOptions.value = await getTiposEvento();
   if (props.mode === 'update' && props.evento) {
@@ -204,15 +205,9 @@ onMounted(async () => {
   }
 });
 
-watch(
-  () => props.evento,
-  (val) => {
-    if (props.mode === 'update' && val) setFormFromEvento(val);
-    if (props.mode === 'create') resetForm();
-  },
-);
-
-function setFormFromEvento(evento: Evento) {
+// -------------------- CONSTS (MÉTODOS) --------------------
+// Preenche o formulário a partir de um evento existente
+const setFormFromEvento = (evento: Evento) => {
   const normalizedData = normalizeDateInput(evento.data ?? '');
   form.value = {
     nome: evento.nome,
@@ -233,8 +228,10 @@ function setFormFromEvento(evento: Evento) {
       numero: evento.endereco.numero?.toString() || '',
     },
   };
-}
-function resetForm() {
+};
+
+// Reseta o formulário para o estado inicial
+const resetForm = () => {
   form.value = {
     nome: '',
     descricao: '',
@@ -245,14 +242,24 @@ function resetForm() {
     idTipoEvento: null,
     endereco: { ...defaultEndereco },
   };
-}
+};
 
-function onSubmit() {
+// Obtém o id do usuário logado (ou do evento, se for update)
+const getIdUserInternal = () => {
+  const idUsuario = getIdUser();
+  if (props.mode === 'update' && props.evento) {
+    return props.evento.usuario?.id || idUsuario;
+  }
+  return idUsuario;
+};
+
+// Submete o formulário para criar ou atualizar evento
+const onSubmit = () => {
   if (!form.value.nome || !form.value.descricao || !form.value.data || !form.value.idTipoEvento) {
     notifyCustom('Por favor, preencha todos os campos obrigatórios.', 'warning', 'warning');
     return;
   }
-  const idUsuario = getIdUser();
+  const idUsuario = getIdUserInternal();
   if (!idUsuario) {
     notifyCustom('Usuário não autenticado.', 'negative', 'error');
     return;
@@ -286,10 +293,10 @@ function onSubmit() {
       })
       .finally(finish);
   }
-}
+};
 
-// Corrigido para aceitar string | number | null
-function onCepInput(val: string | number | null) {
+// Busca endereço pelo CEP e preenche campos relacionados
+const onCepInput = (val: string | number | null) => {
   const cep = typeof val === 'string' ? val : (val?.toString() ?? '');
   if (!cep || cep.length < 8) return;
   enderecoLoading.value = true;
@@ -306,28 +313,41 @@ function onCepInput(val: string | number | null) {
     .finally(() => {
       enderecoLoading.value = false;
     });
-}
+};
+
+// -------------------- WATCHS --------------------
+watch(
+  () => props.evento,
+  (val) => {
+    if (props.mode === 'update' && val) setFormFromEvento(val);
+    if (props.mode === 'create') resetForm();
+  },
+);
+
+// -------------------- COMPUTEDS --------------------
+// Computed para manipular o campo de data do formulário
+const formData = computed({
+  get() {
+    return formatDateForInput(form.value.data);
+  },
+  set(val: string) {
+    form.value.data = normalizeDateInput(val);
+  },
+});
 </script>
 
 <style scoped>
-.gray-form {
-  background-color: var(--gray-form-bg);
-  border-radius: 6px;
-}
-.gray-toggle {
-  background-color: var(--gray-form-bg);
-  border-radius: 6px;
-  padding: 2px 8px;
-}
-:root {
-  --gray-form-bg: #f2f2f4;
-}
 .body--dark .gray-form,
 .body--dark .gray-toggle {
-  --gray-form-bg: #23232b;
+  --gray-form-bg: #3f3f3f;
+  background-color: var(--gray-form-bg);
+  border-radius: 6px;
 }
 .body--light .gray-form,
+.body--light .gray-toggle,
 .body--light .gray-toggle {
-  --gray-form-bg: #f2f2f4;
+  --gray-form-bg: #d8d8d8;
+  background-color: var(--gray-form-bg);
+  border-radius: 6px;
 }
 </style>

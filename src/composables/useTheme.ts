@@ -1,15 +1,16 @@
 import { useQuasar } from 'quasar';
 import { onMounted, onUnmounted, ref, watchEffect } from 'vue';
+import { get as getSession, set as setSession } from '../utils/localStorageUtils';
 
-const THEME_COOKIE = 'theme';
+const THEME_KEY = 'theme';
 
-function setThemeCookie(theme: 'dark' | 'light') {
-  document.cookie = `${THEME_COOKIE}=${theme};path=/;max-age=31536000`;
+function setTheme(theme: 'dark' | 'light') {
+  setSession(THEME_KEY, theme); // Salva no LOCAL_STORAGE
 }
 
-function getThemeCookie(): 'dark' | 'light' | null {
-  const match = document.cookie.match(new RegExp('(^| )' + THEME_COOKIE + '=([^;]+)'));
-  return match ? (match[2] as 'dark' | 'light') : null;
+function getTheme(): 'dark' | 'light' | null {
+  const value = getSession(THEME_KEY);
+  return value === 'dark' || value === 'light' ? value : null;
 }
 
 export function useTheme() {
@@ -24,14 +25,14 @@ export function useTheme() {
   function toggleDark() {
     const theme = isDark.value ? 'light' : 'dark';
     applyTheme(theme);
-    setThemeCookie(theme);
+    setTheme(theme);
   }
 
   function detectAndApplyTheme() {
-    let theme = getThemeCookie();
+    let theme = getTheme();
     if (!theme) {
       theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      setThemeCookie(theme);
+      setTheme(theme);
     }
     applyTheme(theme);
   }
@@ -39,7 +40,7 @@ export function useTheme() {
   function handleThemeChange(e: MediaQueryListEvent) {
     const theme = e.matches ? 'dark' : 'light';
     applyTheme(theme);
-    setThemeCookie(theme);
+    setTheme(theme);
   }
 
   onMounted(() => {

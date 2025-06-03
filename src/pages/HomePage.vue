@@ -77,11 +77,16 @@ function restoreScreen() {
 // =====================
 const buildHome = () => {
   verifyToken();
+  getUserName();
 };
 
 const verifyToken = () => {
   const token = getAccessToken();
   isLoggedIn.value = !!token;
+};
+
+const getUserName = () => {
+  userName.value = getUsername();
 };
 
 // =====================

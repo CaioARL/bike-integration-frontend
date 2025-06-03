@@ -93,6 +93,19 @@
       <q-tooltip v-if="!$q.platform.is.mobile"> Menu de eventos </q-tooltip>
     </q-btn>
 
+    <!-- Botão flutuante para forçar atualização -->
+    <q-btn
+      class="q-mb-md q-ml-md"
+      color="secondary"
+      icon="refresh"
+      round
+      dense
+      @click="onForceRefresh"
+      style="position: fixed; top: 1rem; left: 4.5rem; z-index: 2000"
+    >
+      <q-tooltip>Forçar atualização</q-tooltip>
+    </q-btn>
+
     <!-- Lista de eventos -->
     <div style="position: relative; min-height: 120px">
       <div class="flex justify-center items-center" v-if="isLoading">
@@ -242,7 +255,7 @@
     </div>
 
     <!-- Footer com paginação -->
-    <q-footer class="q-shadow-1">
+    <q-footer class="q-shadow-1 bg-transparent">
       <div class="row justify-center items-center">
         <div class="col-auto">
           <span class="q-mr-lg text-caption" v-if="eventoResponse?.totalRegistros !== undefined">
@@ -310,7 +323,7 @@ import { getNiveisHabilidade } from 'src/services/nivelHabilidadeService';
 import { getTiposEvento } from 'src/services/tipoEventoService';
 import { ref, computed, onMounted, defineEmits, watch, nextTick } from 'vue';
 import EventoForm from './EventoForm.vue';
-import * as sessionUtils from 'src/utils/sessionStorageUtils';
+import * as sessionUtils from 'src/utils/localStorageUtils';
 
 // -------------------- CONSTANTES E VARIÁVEIS --------------------
 const defaultFilters = {
@@ -351,29 +364,20 @@ const EXPANDED_KEY = 'eventoListExpanded'; // chave de storage para eventos expa
 
 // -------------------- ONMOUNTED --------------------
 onMounted(async () => {
-  const restored = restoreState();
+  await restoreStateInternal();
   await verifyLogin();
   await fetchTiposEvento();
   await fetchNiveisHabilidade();
-  if (restored) {
-    console.log(
-      'Estado restaurado com sucesso:',
-      filters.value,
-      currentPage.value,
-      eventoResponse.value,
-    );
-    await fetchEventos(buildEventoRequest());
-    const expandedId = Array.from(expandedEvents.value).at(-1);
-    if (typeof expandedId === 'number') {
-      await nextTick();
-      await scrollToExpandedEvent(expandedId);
-    }
-  } else {
-    await onFilter();
-  }
 });
 
 // -------------------- MÉTODOS --------------------
+const getLastExpandedEventOnCurrentPage = (): number | undefined => {
+  const currentIds = paginatedEvents.value.map((e) => e.id);
+  // Filtra os eventos expandidos que estão na página atual
+  const expandedOnPage = Array.from(expandedEvents.value).filter((id) => currentIds.includes(id));
+  return expandedOnPage.at(-1);
+};
+
 const expansionItemRef = (eventId: number) => (el: Element | { $el?: Element } | null) => {
   if (el && typeof el === 'object' && '$el' in el && el.$el instanceof HTMLElement) {
     expansionRefs.value[eventId] = el.$el;
@@ -399,6 +403,19 @@ const saveState = () => {
   };
   sessionUtils.set(STORAGE_KEY, JSON.stringify(state));
   sessionUtils.set(EXPANDED_KEY, JSON.stringify(Array.from(expandedEvents.value)));
+};
+
+const restoreStateInternal = async () => {
+  const restored = restoreState();
+  if (restored) {
+    const expandedId = getLastExpandedEventOnCurrentPage();
+    if (typeof expandedId === 'number') {
+      await nextTick();
+      await scrollToExpandedEvent(expandedId);
+    }
+  } else {
+    await onFilter();
+  }
 };
 
 const restoreState = () => {
@@ -455,6 +472,10 @@ const fetchEventos = async (request: EventoRequest) => {
   } finally {
     isLoading.value = false;
   }
+};
+
+const onForceRefresh = async () => {
+  await onFilter();
 };
 
 const aprovar = async (event: Evento) => {
@@ -545,16 +566,6 @@ const onFormSubmit = async () => {
 };
 
 const onFilter = async (expandId?: number) => {
-  const raw = sessionStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try {
-      const state = JSON.parse(raw);
-      if (state.currentPage) currentPage.value = state.currentPage;
-      if (state.filters) Object.assign(filters.value, state.filters);
-    } catch {
-      // ignora erro
-    }
-  }
   await fetchEventos(buildEventoRequest());
   if (expandId) {
     expandedEvents.value = new Set([expandId]);
@@ -574,8 +585,8 @@ const handlePageChange = async (page: number) => {
 
 // -------------------- WATCHS --------------------
 watch([filters, currentPage, eventoResponse, expandedEvents], saveState, { deep: true });
-watch([eventoResponse, expandedEvents], async ([response, expanded]) => {
-  const expandedId = Array.from(expanded).at(-1);
+watch([eventoResponse, expandedEvents], async ([response]) => {
+  const expandedId = getLastExpandedEventOnCurrentPage();
   if (typeof expandedId === 'number' && response?.eventos?.some((e) => e.id === expandedId)) {
     await nextTick();
     await scrollToExpandedEvent(expandedId);
@@ -585,15 +596,15 @@ watch([eventoResponse, expandedEvents], async ([response, expanded]) => {
 // -------------------- COMPUTEDS --------------------
 const totalPages = computed(() =>
   Math.ceil((eventoResponse.value?.totalRegistros ?? 0) / rowsPerPage),
-); // total de páginas
+);
+
 const paginatedEvents = computed<Evento[]>(() => eventoResponse.value?.eventos ?? []); // eventos paginados
 </script>
 
 <style scoped>
 body.body--dark .q-footer {
-  background: #232323 !important;
-  color: #eee;
-  border: 2px solid #353535;
+  border: 1px solid transparent;
+  color: #ffffff;
 }
 body.body--dark .q-expansion-item {
   background: #232323 !important;
@@ -601,13 +612,12 @@ body.body--dark .q-expansion-item {
 body.body--dark .q-form,
 body.body--dark .q-banner {
   background: #232323 !important;
-  color: #eee;
+  color: #ffffff;
 }
 
 body.body--light .q-footer {
-  background: #e0e1e6 !important;
+  border: 1px solid transparent;
   color: #000000;
-  border: 2px solid #ffffff;
 }
 body.body--light .q-expansion-item {
   background: #e0e1e6 !important;
@@ -618,6 +628,7 @@ body.body--light .q-banner {
   color: #000000;
 }
 
+/* Removendo scrollbar */
 .event-list-scroll {
   height: calc(100dvh - 6.1rem);
   overflow-y: auto;

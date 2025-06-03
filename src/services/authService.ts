@@ -2,54 +2,54 @@ import type { AxiosResponse } from 'axios';
 import type { AuthRequest } from 'src/models/request/AuthRequest';
 import type { Usuario } from 'src/models/Usuario';
 import api from 'src/services/axiosService';
-import { get, remove, set } from 'src/utils/sessionStorageUtils';
+import { get, remove, set } from 'src/utils/localStorageUtils';
 
-export const COOKIE_NAME_ACCESS_TOKEN: string = 'accessToken';
-export const COOKIE_NAME_USERNAME: string = 'username';
-export const COOKIE_ID_USER: string = 'idUser';
+export const STORAGE_NAME_ACCESS_TOKEN: string = 'accessToken';
+export const STORAGE_NAME_USERNAME: string = 'username';
+export const STORAGE_ID_USER: string = 'idUser';
 
 export const publicUrls: string[] = ['/', '/acesso-negado', '/servico-indisponivel'];
 
 export const setAccessToken = (accessToken: string | null = null): void => {
   if (accessToken) {
-    set(COOKIE_NAME_ACCESS_TOKEN, accessToken, true);
+    set(STORAGE_NAME_ACCESS_TOKEN, accessToken);
     return;
   }
-  throw new Error('Ocorreu um erro ao efetuar a autenticação na pasta digital');
+  throw new Error('Ocorreu um erro ao efetuar a autenticação');
 };
 
 export const setUsername = (username: string | null = null): void => {
   if (username) {
-    set(COOKIE_NAME_USERNAME, username, true);
+    set(STORAGE_NAME_USERNAME, username);
     return;
   }
-  throw new Error('Ocorreu um erro ao efetuar a autenticação na pasta digital');
+  throw new Error('Ocorreu um erro ao efetuar a autenticação');
 };
 
 export const setIdUser = (idUser: string | null = null): void => {
   if (idUser !== null) {
-    set(COOKIE_ID_USER, idUser, true);
+    set(STORAGE_ID_USER, idUser);
     return;
   }
-  throw new Error('Ocorreu um erro ao efetuar a autenticação na pasta digital');
+  throw new Error('Ocorreu um erro ao efetuar a autenticação');
 };
 
 export const getAccessToken = (): string | null => {
-  return get(COOKIE_NAME_ACCESS_TOKEN);
+  return get(STORAGE_NAME_ACCESS_TOKEN);
 };
 
 export const getUsername = (): string | null => {
-  return get(COOKIE_NAME_USERNAME);
+  return get(STORAGE_NAME_USERNAME);
 };
 
 export const getIdUser = (): string | null => {
-  return get(COOKIE_ID_USER);
+  return get(STORAGE_ID_USER);
 };
 
 export const logout = (): void => {
-  remove(COOKIE_NAME_ACCESS_TOKEN);
-  remove(COOKIE_NAME_USERNAME);
-  remove(COOKIE_ID_USER);
+  remove(STORAGE_NAME_ACCESS_TOKEN);
+  remove(STORAGE_NAME_USERNAME);
+  remove(STORAGE_ID_USER);
 };
 
 export const isAuthenticated = async (): Promise<boolean> => {
@@ -87,6 +87,6 @@ export const getBikeAccessToken = async (usuario: AuthRequest): Promise<void> =>
     }
   } catch (error) {
     console.error('Erro ao obter o token de acesso:', error);
-    throw new Error('Ocorreu um erro ao efetuar a autenticação na pasta digital');
+    throw new Error('Ocorreu um erro ao efetuar a autenticação');
   }
 };
