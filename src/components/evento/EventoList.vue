@@ -363,14 +363,25 @@ const STORAGE_KEY = 'eventoListState'; // chave de storage para filtros e pagina
 const EXPANDED_KEY = 'eventoListExpanded'; // chave de storage para eventos expandidos
 
 // -------------------- ONMOUNTED --------------------
-onMounted(async () => {
-  await restoreStateInternal();
-  await verifyLogin();
-  await fetchTiposEvento();
-  await fetchNiveisHabilidade();
+onMounted(() => {
+  doMount();
 });
-
 // -------------------- MÉTODOS --------------------
+
+const doMount = () => {
+  isLoading.value = true;
+  setTimeout(() => {
+    isLoading.value = false;
+    void (async () => {
+      await Promise.all([
+        restoreStateInternal(),
+        verifyLogin(),
+        fetchTiposEvento(),
+        fetchNiveisHabilidade(),
+      ]);
+    })();
+  }, 0);
+};
 const getLastExpandedEventOnCurrentPage = (): number | undefined => {
   const currentIds = paginatedEvents.value.map((e) => e.id);
   // Filtra os eventos expandidos que estão na página atual
