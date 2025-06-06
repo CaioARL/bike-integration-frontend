@@ -10,6 +10,7 @@ export interface Evento {
   dtAtualizacao: string;
   endereco: Endereco;
   gratuito: boolean;
+  valor: number | null;
   faixaKm: number;
   urlSite?: string;
   tipoEvento: TipoEvento;

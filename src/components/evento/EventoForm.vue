@@ -53,6 +53,17 @@
           left-label
           class="gray-toggle q-mb-sm q-pa-sm"
         />
+        <q-input
+          v-if="!form.gratuito"
+          v-model.number="form.valor"
+          label="Valor"
+          type="number"
+          step="0.01"
+          outlined
+          dense
+          class="gray-form q-mb-sm"
+          required
+        />
         <q-select
           v-model="form.idTipoEvento"
           :options="tiposEventoOptions"
@@ -130,8 +141,38 @@
                 required
               />
             </div>
+            <div class="col-12 col-md-12">
+              <q-input
+                v-model="form.endereco.complemento"
+                label="Complemento"
+                outlined
+                dense
+                class="gray-form q-mb-sm"
+              />
+            </div>
           </div>
         </q-expansion-item>
+        <q-toggle
+          v-model="manualUserId"
+          label="Definir ID do Usuário manualmente"
+          left-label
+          class="gray-toggle q-mb-sm q-pa-sm"
+        />
+        <q-select
+          v-if="manualUserId"
+          v-model="userSelectInput"
+          outlined
+          dense
+          use-input
+          hide-selected
+          fill-input
+          input-debounce="1"
+          :options="userOptions"
+          option-label="nome"
+          option-value="id"
+          placeholder="Digite o nome do usuário"
+          @filter="onUserSearch"
+        />
         <div class="row q-mt-md q-gutter-sm justify-end">
           <q-btn flat label="Cancelar" color="primary" @click="$emit('close')" />
           <q-btn
@@ -157,6 +198,8 @@ import type { EventoFormData } from 'src/models/request/EventoFormData';
 import { getIdUser } from 'src/services/authService';
 import { getEnderecoByCep } from 'src/services/enderecoService';
 import { normalizeDateInput, formatDateForInput } from 'src/utils/dateUtils';
+import { getUsuariosByName } from 'src/services/usuarioService';
+import type { Usuario } from 'src/models/Usuario';
 
 // -------------------- CONSTS--------------------
 const props = defineProps<{
@@ -178,10 +221,14 @@ const defaultEndereco = {
   bairro: '',
   rua: '',
   numero: '',
+  complemento: '',
 };
 
 const form = ref<
-  Omit<EventoFormData, 'nivelHabilidadeId' | 'tipoEventoId'> & { idTipoEvento: number | null }
+  Omit<EventoFormData, 'nivelHabilidadeId' | 'tipoEventoId'> & {
+    idTipoEvento: number | null;
+    valor?: number;
+  }
 >({
   nome: '',
   descricao: '',
@@ -189,6 +236,7 @@ const form = ref<
   faixaKm: 0,
   urlSite: '',
   gratuito: false,
+  valor: 0,
   idTipoEvento: null,
   endereco: { ...defaultEndereco },
 });
@@ -196,6 +244,10 @@ const form = ref<
 const tiposEventoOptions = ref<TipoEvento[]>([]); // Endereço padrão para inicialização do formulário
 const loading = ref(false); // Status de loading do campo de endereço (CEP)
 const enderecoLoading = ref(false); // boolean para indicar se o CEP está sendo buscado
+const manualUserId = ref(false); // Toggle para definir se o usuário será selecionado manualmente
+const userSelectInput = ref<Usuario | null>(null); // Input do usuário selecionado manualmente
+const userOptions = ref<Usuario[]>([]); // Opções de usuários para o select
+const userLoading = ref(false); // Status de loading do campo de usuário
 
 // -------------------- ONMOUNTED --------------------
 onMounted(async () => {
@@ -216,6 +268,7 @@ const setFormFromEvento = (evento: Evento) => {
     faixaKm: evento.faixaKm,
     urlSite: evento.urlSite || '',
     gratuito: evento.gratuito,
+    valor: evento.valor || 0,
     idTipoEvento: evento.tipoEvento?.id || null,
     endereco: {
       cidade: evento.endereco.cidade,
@@ -226,6 +279,7 @@ const setFormFromEvento = (evento: Evento) => {
       bairro: evento.endereco.bairro || '',
       rua: evento.endereco.rua || '',
       numero: evento.endereco.numero?.toString() || '',
+      complemento: evento.endereco.complemento || '',
     },
   };
 };
@@ -239,13 +293,44 @@ const resetForm = () => {
     faixaKm: 0,
     urlSite: '',
     gratuito: false,
+    valor: 0,
     idTipoEvento: null,
     endereco: { ...defaultEndereco },
   };
 };
 
+// -------------------- MÉTODOS DE BUSCA --------------------
+// Busca usuários conforme o texto digitado (assinatura correta para Quasar q-select)
+const onUserSearch = async (
+  inputValue: string,
+  doneFn: (callbackFn: () => void, afterFn?: (ref: unknown) => void) => void,
+) => {
+  if (!inputValue || inputValue.length < 1) {
+    doneFn(() => {
+      userOptions.value = [];
+    });
+    return;
+  }
+  userLoading.value = true;
+  try {
+    const usuarios = await getUsuariosByName(inputValue);
+    doneFn(() => {
+      userOptions.value = usuarios;
+    });
+  } catch {
+    doneFn(() => {
+      userOptions.value = [];
+    });
+  } finally {
+    userLoading.value = false;
+  }
+};
+
 // Obtém o id do usuário logado (ou do evento, se for update)
 const getIdUserInternal = () => {
+  if (manualUserId.value && userSelectInput.value) {
+    return userSelectInput.value.id;
+  }
   const idUsuario = getIdUser();
   if (props.mode === 'update' && props.evento) {
     return props.evento.usuario?.id || idUsuario;
@@ -253,10 +338,30 @@ const getIdUserInternal = () => {
   return idUsuario;
 };
 
-// Submete o formulário para criar ou atualizar evento
+// Limpa o usuário selecionado ao abrir/fechar o toggle manualUserId
+watch(manualUserId, (val) => {
+  if (!val) {
+    userSelectInput.value = null;
+  }
+});
+
+// Limpa o usuário selecionado apenas se o texto do input for apagado manualmente
+watch(userOptions, () => {
+  // Não limpe o selecionado ao digitar, só se o input estiver vazio
+  const input = document.querySelector('.user-select-popup input');
+  if (input && (input as HTMLInputElement).value === '') {
+    userSelectInput.value = null;
+  }
+});
+
+// Ajusta a validação do formulário para não exigir valor se usuário manual estiver selecionado corretamente
 const onSubmit = () => {
   if (!form.value.nome || !form.value.descricao || !form.value.data || !form.value.idTipoEvento) {
     notifyCustom('Por favor, preencha todos os campos obrigatórios.', 'warning', 'warning');
+    return;
+  }
+  if (manualUserId.value && !userSelectInput.value) {
+    notifyCustom('Por favor, selecione um usuário.', 'warning', 'warning');
     return;
   }
   const idUsuario = getIdUserInternal();

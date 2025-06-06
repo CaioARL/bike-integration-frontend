@@ -16,5 +16,6 @@ export interface EventoFormData {
     bairro?: string;
     rua?: string;
     numero?: string | number;
+    complemento?: string;
   };
 }

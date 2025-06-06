@@ -4,7 +4,8 @@ export interface Endereco {
   cidade: string;
   bairro: string;
   rua: string;
-  numero: number;
+  numero: number | string;
+  complemento: string;
   latitude?: number;
   longitude?: number;
 }

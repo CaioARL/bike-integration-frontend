@@ -40,6 +40,8 @@ export default defineConfig(() => {
         VUE_APP_API_X_ACCESS_KEY:
           process.env.VUE_APP_API_X_ACCESS_KEY ||
           '754SQn98HiZRrqUYM9ZLsbP0gvhG7Z92kjgD6AME9rIuHC1g22',
+        VUE_APP_API_WS_URL:
+          process.env.VUE_APP_API_WS_URL || 'ws://localhost:8080/bike-integration/ws',
       },
       vueOptions: {
         compilerOptions: {

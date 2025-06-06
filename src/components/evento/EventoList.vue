@@ -161,7 +161,10 @@
                     <div class="q-ml-md">
                       <div><strong>Nome:</strong> {{ event.usuario.nome }}</div>
                       <div><strong>Email:</strong> {{ event.usuario.email }}</div>
-                      <div><strong>CNPJ:</strong> {{ event.usuario.cnpj }}</div>
+                      <div>
+                        <strong>{{ event.usuario.cnpj ? 'CNPJ' : 'CPF' }}:</strong>
+                        {{ event.usuario.cnpj || event.usuario.cpf }}
+                      </div>
                       <q-expansion-item
                         v-if="event.usuario.endereco"
                         dense
@@ -181,6 +184,9 @@
                   </q-expansion-item>
                   <div class="text-body1">
                     <strong>Gratuito:</strong> <span>{{ event.gratuito ? 'Sim' : 'Não' }}</span>
+                  </div>
+                  <div v-if="!event.gratuito" class="text-body1">
+                    <strong>Valor:</strong> <span>{{ event.valor }}</span>
                   </div>
                   <div class="text-body1">
                     <strong>Faixa Km:</strong> <span>{{ event.faixaKm }}</span>
@@ -321,9 +327,11 @@ import { aprovarEvento, excluirEvento, getEventos } from 'src/services/eventoSer
 import { isAuthenticated } from 'src/services/authService';
 import { getNiveisHabilidade } from 'src/services/nivelHabilidadeService';
 import { getTiposEvento } from 'src/services/tipoEventoService';
-import { ref, computed, onMounted, defineEmits, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, defineEmits, watch, nextTick, onUnmounted } from 'vue';
 import EventoForm from './EventoForm.vue';
 import * as sessionUtils from 'src/utils/localStorageUtils';
+import { connectEventoSocket, disconnectEventoSocket } from 'src/services/eventoSocketService';
+import { notifyCustom } from 'src/services/notifyService';
 
 // -------------------- CONSTANTES E VARIÁVEIS --------------------
 const defaultFilters = {
@@ -365,7 +373,13 @@ const EXPANDED_KEY = 'eventoListExpanded'; // chave de storage para eventos expa
 // -------------------- ONMOUNTED --------------------
 onMounted(() => {
   doMount();
+  connectEventoSocket(handleSocketMessage);
 });
+
+onUnmounted(() => {
+  disconnectEventoSocket();
+});
+
 // -------------------- MÉTODOS --------------------
 
 const doMount = () => {
@@ -382,6 +396,24 @@ const doMount = () => {
     })();
   }, 0);
 };
+
+const handleSocketMessage = (msg: string) => {
+  try {
+    const data = JSON.parse(msg);
+    if (data.count && data.count > (eventoResponse.value?.totalRegistros ?? 0)) {
+      console.log('Novos eventos encontrados:', data.count);
+      notifyCustom(
+        'Foram encontrados novos eventos, por favor atualize a lista.',
+        'warning',
+        'sync_problem',
+        10000,
+      );
+    }
+  } catch (error) {
+    console.error('Erro ao processar mensagem do socket:', error);
+  }
+};
+
 const getLastExpandedEventOnCurrentPage = (): number | undefined => {
   const currentIds = paginatedEvents.value.map((e) => e.id);
   // Filtra os eventos expandidos que estão na página atual
