@@ -153,8 +153,9 @@
                       <div><strong>Bairro:</strong> {{ event.endereco.bairro }}</div>
                       <div><strong>Rua:</strong> {{ event.endereco.rua }}</div>
                       <div><strong>Número:</strong> {{ event.endereco.numero }}</div>
-                      <div><strong>Latitude:</strong> {{ event.endereco.latitude }}</div>
-                      <div><strong>Longitude:</strong> {{ event.endereco.longitude }}</div>
+                      <div v-if="event.endereco.complemento">
+                        <strong>Complemento:</strong> {{ event.endereco.complemento }}
+                      </div>
                     </div>
                   </q-expansion-item>
                   <q-expansion-item dense label="Usuário" class="q-mb-sm">
@@ -178,6 +179,9 @@
                           <div><strong>Bairro:</strong> {{ event.usuario.endereco.bairro }}</div>
                           <div><strong>Rua:</strong> {{ event.usuario.endereco.rua }}</div>
                           <div><strong>Número:</strong> {{ event.usuario.endereco.numero }}</div>
+                          <div v-if="event.endereco.complemento">
+                            <strong>Complemento:</strong> {{ event.usuario.endereco.complemento }}
+                          </div>
                         </div>
                       </q-expansion-item>
                     </div>
@@ -332,6 +336,9 @@ import EventoForm from './EventoForm.vue';
 import * as sessionUtils from 'src/utils/localStorageUtils';
 import { connectEventoSocket, disconnectEventoSocket } from 'src/services/eventoSocketService';
 import { notifyCustom } from 'src/services/notifyService';
+import { getIdUser } from 'src/services/authService';
+import type { EventoSocketMessageResponse } from 'src/models/response/EventoSocketMessageResponse';
+import type { EventoPayload } from 'src/models/response/EventoSocketMessageResponse';
 
 // -------------------- CONSTANTES E VARIÁVEIS --------------------
 const defaultFilters = {
@@ -397,18 +404,13 @@ const doMount = () => {
   }, 0);
 };
 
-const handleSocketMessage = (msg: string) => {
+const handleSocketMessage = (msg: EventoSocketMessageResponse<EventoPayload>) => {
   try {
-    const data = JSON.parse(msg);
-    if (data.count && data.count > (eventoResponse.value?.totalRegistros ?? 0)) {
-      console.log('Novos eventos encontrados:', data.count);
-      notifyCustom(
-        'Foram encontrados novos eventos, por favor atualize a lista.',
-        'warning',
-        'sync_problem',
-        10000,
-      );
+    if (msg.userId === getIdUser() || new Date(msg.timestamp).getTime() < Date.now() - 10000) {
+      // Ignora mensagens do próprio usuário ou muito antigas
+      return;
     }
+    notifyCustom(msg.message ?? '', 'warning', 'sync_problem', 10000);
   } catch (error) {
     console.error('Erro ao processar mensagem do socket:', error);
   }

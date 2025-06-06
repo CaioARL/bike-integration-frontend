@@ -6,21 +6,13 @@
       </div>
       <q-form @submit.prevent="onSubmit">
         <q-inner-loading :showing="loading" color="primary" size="50px" />
-        <q-input
-          v-model="form.nome"
-          label="Nome"
-          outlined
-          dense
-          class="gray-form q-mb-sm"
-          required
-        />
+        <q-input v-model="form.nome" label="Nome" outlined dense class="gray-form q-mb-sm" />
         <q-input
           v-model="form.descricao"
           label="Descrição"
           outlined
           dense
           class="gray-form q-mb-sm"
-          required
         />
         <q-input
           v-model="formData"
@@ -29,7 +21,6 @@
           outlined
           dense
           class="gray-form q-mb-sm"
-          required
         />
         <q-input
           v-model.number="form.faixaKm"
@@ -38,7 +29,6 @@
           outlined
           dense
           class="gray-form q-mb-sm"
-          required
         />
         <q-input
           v-model="form.urlSite"
@@ -62,7 +52,6 @@
           outlined
           dense
           class="gray-form q-mb-sm"
-          required
         />
         <q-select
           v-model="form.idTipoEvento"
@@ -75,7 +64,6 @@
           outlined
           dense
           class="gray-form q-mb-sm"
-          required
         />
         <q-expansion-item label="Endereço" class="q-mb-sm" expand-separator>
           <div class="row q-col-gutter-sm">
@@ -86,7 +74,6 @@
                 outlined
                 dense
                 class="gray-form q-mb-sm"
-                required
                 :loading="enderecoLoading"
                 @update:model-value="onCepInput"
               />
@@ -98,7 +85,6 @@
                 outlined
                 dense
                 class="gray-form q-mb-sm"
-                required
               />
             </div>
             <div class="col-12 col-md-6">
@@ -108,7 +94,6 @@
                 outlined
                 dense
                 class="gray-form q-mb-sm"
-                required
               />
             </div>
             <div class="col-12 col-md-6">
@@ -118,7 +103,6 @@
                 outlined
                 dense
                 class="gray-form q-mb-sm"
-                required
               />
             </div>
             <div class="col-12 col-md-6">
@@ -128,7 +112,6 @@
                 outlined
                 dense
                 class="gray-form q-mb-sm"
-                required
               />
             </div>
             <div class="col-12 col-md-6">
@@ -138,7 +121,6 @@
                 outlined
                 dense
                 class="gray-form q-mb-sm"
-                required
               />
             </div>
             <div class="col-12 col-md-12">
@@ -154,13 +136,14 @@
         </q-expansion-item>
         <q-toggle
           v-model="manualUserId"
-          label="Definir ID do Usuário manualmente"
+          label="Buscar usuário por nome (se desmarcado, usuário será o logado)"
           left-label
           class="gray-toggle q-mb-sm q-pa-sm"
         />
         <q-select
           v-if="manualUserId"
           v-model="userSelectInput"
+          :display-value="userSelectInput ? userSelectInput.nome : ''"
           outlined
           dense
           use-input
@@ -282,6 +265,14 @@ const setFormFromEvento = (evento: Evento) => {
       complemento: evento.endereco.complemento || '',
     },
   };
+  // Preenche o usuário selecionado manualmente, se existir
+  if (evento.usuario) {
+    userSelectInput.value = evento.usuario;
+    manualUserId.value = true;
+  } else {
+    userSelectInput.value = null;
+    manualUserId.value = false;
+  }
 };
 
 // Reseta o formulário para o estado inicial
@@ -338,13 +329,6 @@ const getIdUserInternal = () => {
   return idUsuario;
 };
 
-// Limpa o usuário selecionado ao abrir/fechar o toggle manualUserId
-watch(manualUserId, (val) => {
-  if (!val) {
-    userSelectInput.value = null;
-  }
-});
-
 // Limpa o usuário selecionado apenas se o texto do input for apagado manualmente
 watch(userOptions, () => {
   // Não limpe o selecionado ao digitar, só se o input estiver vazio
@@ -356,8 +340,62 @@ watch(userOptions, () => {
 
 // Ajusta a validação do formulário para não exigir valor se usuário manual estiver selecionado corretamente
 const onSubmit = () => {
-  if (!form.value.nome || !form.value.descricao || !form.value.data || !form.value.idTipoEvento) {
-    notifyCustom('Por favor, preencha todos os campos obrigatórios.', 'warning', 'warning');
+  if (!form.value.nome) {
+    notifyCustom('Por favor, preencha o nome do evento.', 'warning', 'warning');
+    return;
+  }
+  if (!form.value.descricao) {
+    notifyCustom('Por favor, preencha a descrição do evento.', 'warning', 'warning');
+    return;
+  }
+  if (!form.value.data) {
+    notifyCustom('Por favor, preencha a data do evento.', 'warning', 'warning');
+    return;
+  }
+  if (!form.value.faixaKm || form.value.faixaKm <= 0) {
+    notifyCustom('Por favor, preencha a faixa de Km do evento.', 'warning', 'warning');
+    return;
+  }
+  if (form.value.urlSite && !/^https?:\/\/.+/i.test(form.value.urlSite)) {
+    notifyCustom('Por favor, preencha uma URL válida.', 'warning', 'warning');
+    return;
+  }
+  if (!form.value.gratuito && (form.value.valor === undefined || form.value.valor <= 0)) {
+    notifyCustom('Por favor, preencha o valor do evento.', 'warning', 'warning');
+    return;
+  }
+  if (!form.value.idTipoEvento) {
+    notifyCustom('Por favor, selecione o tipo de evento.', 'warning', 'warning');
+    return;
+  }
+  // Endereço obrigatório
+  const endereco = form.value.endereco;
+  if (!endereco.cep || endereco.cep.length < 8) {
+    notifyCustom('Por favor, preencha um CEP válido.', 'warning', 'warning');
+    return;
+  }
+  if (!endereco.estado) {
+    notifyCustom('Por favor, preencha o estado.', 'warning', 'warning');
+    return;
+  }
+  if (!endereco.cidade) {
+    notifyCustom('Por favor, preencha a cidade.', 'warning', 'warning');
+    return;
+  }
+  if (!endereco.bairro) {
+    notifyCustom('Por favor, preencha o bairro.', 'warning', 'warning');
+    return;
+  }
+  if (!endereco.rua) {
+    notifyCustom('Por favor, preencha a rua.', 'warning', 'warning');
+    return;
+  }
+  if (!endereco.numero) {
+    notifyCustom('Por favor, preencha o número.', 'warning', 'warning');
+    return;
+  }
+  if (!form.value.gratuito && (!form.value.valor || form.value.valor <= 0)) {
+    notifyCustom('Por favor, preencha o valor do evento.', 'warning', 'warning');
     return;
   }
   if (manualUserId.value && !userSelectInput.value) {
@@ -377,7 +415,7 @@ const onSubmit = () => {
   if (props.mode === 'create') {
     criarEvento(payload)
       .then(() => {
-        notifyCustom('Evento criado com sucesso!', 'success', 'check_circle');
+        notifyCustom('Evento criado com sucesso!', 'positive', 'check_circle');
         resetForm();
         emit('eventoAtualizado');
         emit('close');
@@ -389,7 +427,7 @@ const onSubmit = () => {
   } else if (props.mode === 'update' && props.evento) {
     atualizarEvento(props.evento.id, payload)
       .then(() => {
-        notifyCustom('Evento atualizado com sucesso!', 'success', 'check_circle');
+        notifyCustom('Evento atualizado com sucesso!', 'positive', 'check_circle');
         emit('eventoAtualizado');
         emit('close');
       })

@@ -10,7 +10,7 @@ export function notifyCustom(
 
   Notify.create({
     message,
-    color: color === 'success' ? 'positive' : color,
+    color: color,
     icon,
     position: 'top',
     progress: true,
