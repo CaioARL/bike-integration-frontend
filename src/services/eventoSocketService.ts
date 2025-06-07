@@ -8,11 +8,12 @@ import { notifyCustom } from './notifyService';
 // Serviço para conexão WebSocket com o backend de eventos
 let socket: WebSocket | null = null;
 let onMessageCallback: ((msg: EventoSocketMessageResponse<EventoPayload>) => void) | null = null;
-const token = getAccessToken();
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 3;
+let shouldReconnect = true;
 
 function handleSocketError() {
+  if (!shouldReconnect) return;
   if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
     reconnectAttempts++;
     setTimeout(() => {
@@ -32,8 +33,9 @@ function handleSocketError() {
 export function connectEventoSocket(
   onMessage: (msg: EventoSocketMessageResponse<EventoPayload>) => void,
 ): void {
+  shouldReconnect = true;
   const url = process.env.VUE_APP_API_WS_URL || 'ws://localhost:8080/bike-integration/ws';
-  socket = new WebSocket(`${url}?token=${token}`);
+  socket = new WebSocket(`${url}?token=${getAccessToken()}`);
   onMessageCallback = onMessage;
 
   socket.onopen = () => {
@@ -58,6 +60,7 @@ export function connectEventoSocket(
 }
 
 export function disconnectEventoSocket() {
+  shouldReconnect = false;
   socket?.close();
   socket = null;
 }

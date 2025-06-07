@@ -50,6 +50,8 @@ export const logout = (): void => {
   remove(STORAGE_NAME_ACCESS_TOKEN);
   remove(STORAGE_NAME_USERNAME);
   remove(STORAGE_ID_USER);
+  remove('eventoListState');
+  remove('eventoListExpanded');
 };
 
 export const isAuthenticated = async (): Promise<boolean> => {
