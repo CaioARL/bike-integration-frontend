@@ -13,7 +13,7 @@
     <q-page-container>
       <div>
         <div v-if="showHome">
-          <custom-home-banner />
+          <custom-home-container />
         </div>
         <div v-if="showEventos">
           <custom-evento-list @unauthenticated="unauthenticated" />
