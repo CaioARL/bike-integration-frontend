@@ -15,6 +15,6 @@ export interface Evento {
   urlSite?: string;
   tipoEvento: TipoEvento;
   usuario: Usuario;
-  aprovado: boolean;
+  aprovado: boolean | null;
   s3Url: string | null;
 }

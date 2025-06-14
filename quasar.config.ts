@@ -16,6 +16,7 @@ export default defineConfig(() => {
     extras: [
       'roboto-font', // optional, you are not bound to it
       'material-icons', // optional, you are not bound to it
+      'mdi-v6', // habilita Material Design Icons v6
     ],
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#build

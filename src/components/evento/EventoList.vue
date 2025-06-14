@@ -68,8 +68,47 @@
               outlined
               dense
             />
-            <q-toggle v-model="filters.gratuito" label="Gratuito" left-label />
-            <q-toggle v-model="filters.aprovado" label="Aprovado" left-label class="q-ml-md" />
+            <q-toggle
+              v-model="filters.gratuito"
+              toggle-indeterminate
+              :true-value="true"
+              :false-value="false"
+              :indeterminate-value="null"
+              label="Gratuito?"
+              left-label
+              color="primary"
+              class="q-mr-md"
+            />
+            <div class="text-caption q-mt-xs">
+              <span v-if="filters.gratuito === true" class="text-positive"
+                >Mostrando apenas gratuitos</span
+              >
+              <span v-else-if="filters.gratuito === false" class="text-negative"
+                >Mostrando apenas pagos</span
+              >
+              <span v-else class="text-warning">Mostrando todos</span>
+            </div>
+            <div class="q-gutter-sm q-mb-sm">
+              <q-toggle
+                v-model="filters.aprovado"
+                toggle-indeterminate
+                :true-value="true"
+                :false-value="false"
+                :indeterminate-value="null"
+                label="Aprovado?"
+                left-label
+                color="primary"
+              />
+              <div class="text-caption q-mt-xs">
+                <span v-if="filters.aprovado === true" class="text-positive"
+                  >Mostrando apenas aprovados</span
+                >
+                <span v-else-if="filters.aprovado === false" class="text-negative"
+                  >Mostrando apenas reprovados</span
+                >
+                <span v-else class="text-warning">Mostrando todos</span>
+              </div>
+            </div>
 
             <div>
               <q-btn label="Filtrar" type="submit" color="primary" />
@@ -80,31 +119,39 @@
       </div>
     </q-drawer>
 
-    <!-- Botão flutuante para abrir filtros -->
-    <q-btn
-      class="q-mb-md q-ml-md"
-      color="primary"
-      icon="filter_list"
-      round
-      dense
-      @click="showMobileFilters = true"
-      style="position: fixed; top: 1rem; left: 1rem; z-index: 2000"
+    <!-- Linha de botões de ação -->
+    <div
+      class="q-ml-xs q-pt-sm q-px-sm q-gutter-md row items-center q-gutter-sm"
+      style="z-index: 2000"
     >
-      <q-tooltip v-if="!$q.platform.is.mobile"> Menu de eventos </q-tooltip>
-    </q-btn>
-
-    <!-- Botão flutuante para forçar atualização -->
-    <q-btn
-      class="q-mb-md q-ml-md"
-      color="secondary"
-      icon="refresh"
-      round
-      dense
-      @click="onForceRefresh"
-      style="position: fixed; top: 1rem; left: 4.5rem; z-index: 2000"
-    >
-      <q-tooltip>Forçar atualização</q-tooltip>
-    </q-btn>
+      <q-btn color="primary" icon="filter_list" round dense @click="showMobileFilters = true">
+        <q-tooltip v-if="!$q.platform.is.mobile">Menu de eventos</q-tooltip>
+      </q-btn>
+      <q-btn color="secondary" icon="refresh" round dense @click="onForceRefresh">
+        <q-tooltip>Forçar atualização</q-tooltip>
+      </q-btn>
+      <q-btn
+        v-if="hasPendingEvents"
+        color="warning"
+        round
+        dense
+        :outline="!showOnlyPending"
+        :flat="showOnlyPending"
+        @click="toggleOnlyPending"
+      >
+        <template v-if="showOnlyPending">
+          <q-spinner-puff color="warning" size="32px" />
+          <q-tooltip>Visualizar todos</q-tooltip>
+        </template>
+        <template v-else>
+          <q-icon name="hourglass_empty" />
+          <q-tooltip>Filtrar apenas pendentes</q-tooltip>
+        </template>
+      </q-btn>
+      <div v-if="showOnlyPending" class="text-caption q-ml-xs">
+        <span>Visualizando apenas eventos pendentes</span>
+      </div>
+    </div>
 
     <!-- Lista de eventos -->
     <div style="position: relative; min-height: 120px">
@@ -117,14 +164,33 @@
       <div v-else-if="!isLoading" class="event-list-scroll">
         <q-list class="q-pa-md rounded-borders">
           <q-expansion-item
-            v-for="event in paginatedEvents"
+            v-for="event in filteredEvents"
             :key="event.id"
             :ref="expansionItemRef(event.id)"
             expand-separator
             :default-opened="false"
-            :icon="event.aprovado ? 'check_circle' : 'error'"
-            :header-class="event.aprovado ? 'text-positive' : 'text-negative'"
-            :icon-right="event.aprovado ? 'expand_more' : 'expand_less'"
+            :icon="
+              event.aprovado === true
+                ? 'check_circle'
+                : event.aprovado === false
+                  ? 'cancel'
+                  : 'help_outline'
+            "
+            :icon-color="
+              event.aprovado === true
+                ? 'positive'
+                : event.aprovado === false
+                  ? 'negative'
+                  : 'warning'
+            "
+            :header-class="
+              event.aprovado === true
+                ? 'text-positive'
+                : event.aprovado === false
+                  ? 'text-negative'
+                  : ''
+            "
+            :icon-right="event.aprovado === true ? 'expand_more' : 'expand_less'"
             :label="event.nome"
             :caption="`ID: ${event.id} - Data: ${event.data}`"
             class="q-mb-sm rounded-borders shadow-1"
@@ -199,7 +265,10 @@
                     <strong>Tipo de Evento:</strong> <span>{{ event.tipoEvento?.nome }}</span>
                   </div>
                   <div class="text-body1">
-                    <strong>Aprovado:</strong> <span>{{ event.aprovado ? 'Sim' : 'Não' }}</span>
+                    <strong>Aprovado:</strong>
+                    <span v-if="event.aprovado === true" class="text-positive">Sim</span>
+                    <span v-else-if="event.aprovado === false" class="text-negative">Não</span>
+                    <span v-else class="text-warning">Pendente</span>
                   </div>
                   <div v-if="event.urlSite" class="text-body1">
                     <strong>Site:</strong>
@@ -216,12 +285,20 @@
                       @click="openEventoForm('update', event)"
                     />
                     <q-btn
-                      v-if="!event.aprovado"
+                      v-if="event.aprovado !== true"
                       color="positive"
                       icon="check"
                       label="Aprovar"
                       dense
                       @click="aprovar(event)"
+                    />
+                    <q-btn
+                      v-if="event.aprovado !== false"
+                      color="warning"
+                      icon="close"
+                      label="Reprovar"
+                      dense
+                      @click="askReprovar(event)"
                     />
                     <q-btn
                       v-if="!event.aprovado"
@@ -230,14 +307,6 @@
                       label="Excluir"
                       dense
                       @click="askExcluir(event)"
-                    />
-                    <q-btn
-                      v-if="event.aprovado"
-                      color="warning"
-                      icon="close"
-                      label="Recusar"
-                      dense
-                      @click="recusar(event)"
                     />
                   </div>
                 </div>
@@ -269,15 +338,14 @@
       <div class="row justify-center items-center">
         <div class="col-auto">
           <span class="q-mr-lg text-caption" v-if="eventoResponse?.totalRegistros !== undefined">
-            Total: {{ eventoResponse.totalRegistros }} eventos
+            Total:
+            {{ eventoResponse.totalRegistros }}
+            eventos
           </span>
         </div>
         <div class="col-auto">
-          <span
-            class="q-mr-lg text-caption"
-            v-if="eventoResponse?.eventos && eventoResponse.eventos.length > 0"
-          >
-            Exibindo {{ eventoResponse.eventos.length }} nesta página
+          <span class="q-mr-lg text-caption" v-if="filteredEvents?.length > 0">
+            Exibindo {{ filteredEvents.length }} nesta página
           </span>
         </div>
         <div class="col-auto">
@@ -293,7 +361,7 @@
       </div>
     </q-footer>
 
-    <!-- Diálogos -->
+    <!-- Diálogo para confirmação de exclusão -->
     <q-dialog v-model="showConfirmDelete">
       <q-card>
         <q-card-section class="row items-center">
@@ -316,6 +384,38 @@
         @close="closeEventoForm"
         @eventoAtualizado="onEventoAtualizado"
       />
+    </q-dialog>
+
+    <!-- Diálogo para reprovação de evento -->
+    <q-dialog v-model="showAskReprovar">
+      <q-card style="min-width: 40vw">
+        <q-card-section class="row items-center">
+          <q-icon name="warning" color="warning" size="md" class="q-mr-md" />
+          <span>Informe o motivo da reprovação do evento:</span>
+        </q-card-section>
+        <q-card-section>
+          <q-input
+            v-model="reprovarMotivo"
+            filled
+            autogrow
+            autofocus
+            label="Motivo"
+            type="textarea"
+            hint="Informe o motivo da reprovação"
+            counter
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" color="primary" v-close-popup @click="cancelReprovar" />
+          <q-btn
+            flat
+            label="Confirmar"
+            color="negative"
+            :disable="!reprovarMotivo.trim()"
+            @click="confirmReprovar"
+          />
+        </q-card-actions>
+      </q-card>
     </q-dialog>
   </div>
 </template>
@@ -376,7 +476,10 @@ const expansionRefs = ref<Record<number, HTMLElement | null>>({}); // refs dos e
 const emit = defineEmits<{ (e: 'unauthenticated'): void }>(); // emit para eventos do componente
 const STORAGE_KEY = 'eventoListState'; // chave de storage para filtros e paginação
 const EXPANDED_KEY = 'eventoListExpanded'; // chave de storage para eventos expandidos
-
+const showAskReprovar = ref(false); // exibe diálogo de reprovação de evento
+const reprovarMotivo = ref(''); // motivo da reprovação
+const eventToReprovar = ref<Evento | null>(null);
+const showOnlyPending = ref(false); // exibe apenas eventos pendentes
 // -------------------- ONMOUNTED --------------------
 onMounted(() => {
   doMount();
@@ -524,20 +627,26 @@ const onForceRefresh = async () => {
 };
 
 const aprovar = async (event: Evento) => {
+  isLoading.value = true;
   try {
-    await aprovarEvento(event.id, true);
+    await aprovarEvento(event.id, true, '');
     await onFilter();
   } catch (error) {
     console.error('Erro ao aprovar evento:', error);
+  } finally {
+    isLoading.value = false;
   }
 };
 
-const recusar = async (event: Evento) => {
+const recusar = async (event: Evento, motivo = '') => {
+  isLoading.value = true;
   try {
-    await aprovarEvento(event.id, false);
+    await aprovarEvento(event.id, false, motivo);
     await onFilter();
   } catch (error) {
     console.error('Erro ao recusar evento:', error);
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -628,6 +737,31 @@ const handlePageChange = async (page: number) => {
   await fetchEventos(buildEventoRequest());
 };
 
+// Removendo progress e temporizador do askReprovar
+const askReprovar = (event: Evento) => {
+  eventToReprovar.value = event;
+  reprovarMotivo.value = '';
+  showAskReprovar.value = true;
+};
+
+const cancelReprovar = () => {
+  showAskReprovar.value = false;
+  eventToReprovar.value = null;
+};
+
+const confirmReprovar = async () => {
+  if (eventToReprovar.value && reprovarMotivo.value.trim()) {
+    await recusar(eventToReprovar.value, reprovarMotivo.value);
+  }
+  cancelReprovar();
+};
+
+const toggleOnlyPending = () => {
+  showOnlyPending.value = !showOnlyPending.value;
+  if (showOnlyPending.value) {
+    filters.value.aprovado = null;
+  }
+};
 // -------------------- WATCHS --------------------
 watch([filters, currentPage, eventoResponse, expandedEvents], saveState, { deep: true });
 watch([eventoResponse, expandedEvents], async ([response]) => {
@@ -644,6 +778,19 @@ const totalPages = computed(() =>
 );
 
 const paginatedEvents = computed<Evento[]>(() => eventoResponse.value?.eventos ?? []); // eventos paginados
+
+// Computed para aplicar filtro de pendentes
+const filteredEvents = computed<Evento[]>(() => {
+  if (showOnlyPending.value) {
+    return paginatedEvents.value.filter((e) => e.aprovado === null);
+  }
+  return paginatedEvents.value;
+});
+
+// Computed para verificar se há eventos pendentes
+const hasPendingEvents = computed(() => {
+  return paginatedEvents.value.some((e) => e.aprovado === null);
+});
 </script>
 
 <style scoped>
@@ -675,7 +822,7 @@ body.body--light .q-banner {
 
 /* Removendo scrollbar */
 .event-list-scroll {
-  height: calc(100dvh - 6.1rem);
+  height: calc(100dvh - 8.7rem);
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;

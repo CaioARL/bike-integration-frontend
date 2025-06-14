@@ -1,8 +1,8 @@
 import type { AxiosResponse } from 'axios';
 import type { Evento } from 'src/models/Evento';
+import type { EventoFormData } from 'src/models/request/EventoFormData';
 import type { EventoRequest } from 'src/models/request/EventoRequest';
 import type { EventoResponse } from 'src/models/response/EventoResponse';
-import type { EventoFormData } from 'src/models/request/EventoFormData';
 import api from 'src/services/axiosService';
 
 export const getEventos = async (request: EventoRequest): Promise<EventoResponse> => {
@@ -17,9 +17,13 @@ export const getEventos = async (request: EventoRequest): Promise<EventoResponse
   }
 };
 
-export const aprovarEvento = async (id: number, aprovar: boolean): Promise<void> => {
+export const aprovarEvento = async (
+  id: number,
+  aprovar: boolean,
+  motivo: string,
+): Promise<void> => {
   try {
-    await api.put(`/evento/${id}/${aprovar}`);
+    await api.put(`/evento/${id}/${aprovar}?motivoReprovacao=${encodeURIComponent(motivo)}`);
   } catch (error) {
     console.error('Erro ao aprovar evento:', error);
     throw error;
