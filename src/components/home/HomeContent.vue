@@ -13,8 +13,8 @@
             Expanda as possibilidades do seu futuro com a gente.
           </div>
           <div class="q-mb-md">
-            Somos o Bike Integration, a plataforma que conecta ciclistas, empresas e eventos para
-            promover a mobilidade urbana e o uso consciente das ciclovias.
+            Somos o BiCity, a plataforma que conecta ciclistas, empresas e eventos para promover a
+            mobilidade urbana e o uso consciente das ciclovias.
           </div>
         </div>
         <div class="col-12 col-md-6 flex flex-center q-pa-md">
@@ -116,7 +116,7 @@
     </section>
 
     <!-- FOOTER -->
-    <footer :class="[isDark ? 'footer-dark' : 'footer-light']">
+    <footer :class="[isDark ? 'footer-dark' : 'footer-light', 'q-pa-md']">
       <div class="row items-start justify-between q-px-lg q-mx-auto" style="max-width: 1200px">
         <div class="col-12 col-md-6 q-mb-md">
           <div class="row">
@@ -138,10 +138,6 @@
           </div>
         </div>
         <div class="col-12 col-md-3 q-mb-md">
-          <div class="q-mb-sm">
-            Somos o Bike Integration, uma plataforma que conecta ciclistas, empresas e eventos para
-            promover a mobilidade urbana e o uso consciente das ciclovias.
-          </div>
           <div>
             <q-btn flat dense round icon="mdi-instagram" class="q-mr-sm" />
             <q-btn flat dense round icon="mdi-facebook" class="q-mr-sm" />
@@ -309,7 +305,7 @@ footer {
   color: v-bind('isDark ? "#e0e0e0" : "#222"');
 }
 .footer-light {
-  background: #fff;
+  background: #f1f1f1;
   color: #222;
 }
 .footer-dark {
