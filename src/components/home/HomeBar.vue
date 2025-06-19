@@ -11,7 +11,7 @@
           aria-label="Ir para a página inicial"
         >
           <q-avatar size="80px">
-            <img src="src/assets/bicity-logo.svg" alt="Logo" />
+            <img src="src/assets/home/bicity-logo.svg" alt="Logo" />
           </q-avatar>
           <q-tooltip anchor="bottom middle" self="bottom middle" :offset="[0, 10]">
             Ir para a página inicial

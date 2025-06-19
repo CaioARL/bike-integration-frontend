@@ -8,7 +8,12 @@
       <p>Você não tem permissão para acessar esta página.</p>
       <p class="text-italic text-grey-3">Não tente hackear, pf.</p>
       <div class="flex flex-center q-my-md">
-        <img src="src\assets\stop-svgrepo-com.svg" alt="Acesso Negado" width="100" height="100" />
+        <img
+          src="src\assets\error\stop-svgrepo-com.svg"
+          alt="Acesso Negado"
+          width="100"
+          height="100"
+        />
       </div>
       <router-link
         to="/"

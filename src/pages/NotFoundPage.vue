@@ -9,7 +9,7 @@
       <p class="text-italic text-grey-3">Ta perdido? começa da HOME amigo.</p>
       <div class="flex flex-center q-my-md">
         <img
-          src="src\assets\lost-svgrepo-com.svg"
+          src="src\assets\error\lost-svgrepo-com.svg"
           alt="Página Não Encontrada"
           width="100"
           height="100"

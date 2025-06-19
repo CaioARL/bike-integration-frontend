@@ -11,7 +11,7 @@
       <p class="text-italic text-black">Acho que tropessaram nos cabos</p>
       <div class="flex flex-center q-my-md">
         <img
-          src="src\assets\fall-down-the-stairs-falling-down-svgrepo-com.svg"
+          src="src\assets\error\fall-down-the-stairs-falling-down-svgrepo-com.svg"
           alt="Acesso Negado"
           width="100"
           height="100"

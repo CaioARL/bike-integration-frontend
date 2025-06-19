@@ -1,8 +1,10 @@
 <template>
-  <div class="home-content-bg">
+  <div class="q-pt-xl home-content-bg">
     <!-- HERO/CONNECTIONS -->
-    <section :class="['q-py-xl', 'q-mt-md', isDark ? 'bg-purple-dark' : 'bg-purple-light']">
-      <div class="row items-center justify-center" style="max-width: 1200px; margin: 0 auto">
+    <section
+      :class="['q-py-xl', 'q-mt-md', isDark ? 'bg-purple-dark' : 'bg-purple-light', 'hero-section']"
+    >
+      <div class="row items-center justify-center" style="width: 100%">
         <div class="col-12 col-md-6 q-pa-md">
           <h1 class="text-h4 text-bold q-mb-md">
             Conexões que transformam realidades por meio da mobilidade urbana.
@@ -14,10 +16,18 @@
             Somos o Bike Integration, a plataforma que conecta ciclistas, empresas e eventos para
             promover a mobilidade urbana e o uso consciente das ciclovias.
           </div>
-          <q-btn color="primary" label="Saiba mais" icon="arrow_forward" />
         </div>
         <div class="col-12 col-md-6 flex flex-center q-pa-md">
-          <q-img :src="appMockup1" style="max-width: 320px; border-radius: 18px" />
+          <q-img
+            :src="ride"
+            style="
+              width: 90vw;
+              max-width: 40rem;
+              height: 60vh;
+              object-fit: contain;
+              border-radius: 1.125rem;
+            "
+          />
         </div>
       </div>
     </section>
@@ -25,11 +35,8 @@
     <!-- AQUI VOCÊ ENCONTRA / BENEFÍCIOS -->
     <section :class="['q-py-xl', isDark ? 'bg-yellow-dark' : 'bg-yellow-light']">
       <div class="row items-center justify-center" style="max-width: 1200px; margin: 0 auto">
+        <h2 class="text-h5 text-bold q-mb-md q-mr-xl">AQUI VOCÊ<br />ENCONTRA:</h2>
         <div class="col-12 col-md-5 q-pa-md">
-          <h2 class="text-h5 text-bold q-mb-md">AQUI VOCÊ<br />ENCONTRA:</h2>
-          <q-img :src="cyclistImg" style="max-width: 180px" class="q-mb-md" />
-        </div>
-        <div class="col-12 col-md-7 q-pa-md">
           <div class="row q-col-gutter-md">
             <div class="col-12 col-sm-6" v-for="(benefit, idx) in benefits" :key="idx">
               <q-card flat bordered class="q-pa-md flex items-center">
@@ -63,15 +70,47 @@
     </section>
 
     <!-- CTA -->
-    <section :class="['q-py-xl', isDark ? 'bg-purple-darker' : 'bg-purple-lighter']">
-      <div class="row items-center justify-center" style="max-width: 1200px; margin: 0 auto">
+    <section
+      :class="['q-py-xl', isDark ? 'bg-purple-darker' : 'bg-purple-lighter', 'group-section']"
+    >
+      <div class="row items-center justify-center" style="width: 100%">
         <div class="col-12 col-md-6 q-pa-md">
           <h2 class="text-h5 text-bold q-mb-md">Junte-se à nossa comunidade!</h2>
           <div class="q-mb-md">Faça parte do movimento que transforma a mobilidade urbana.</div>
-          <q-btn color="primary" label="Quero participar" icon="group_add" />
+          <div class="row q-col-gutter-md">
+            <div
+              class="col-12 col-md-6 flex flex-center q-pa-md"
+              style="flex-direction: column; gap: 1rem"
+            >
+              <q-img
+                :src="google"
+                style="max-width: 13.75rem; border-radius: 1.125rem; cursor: pointer"
+                @click="joinCommunityAndroid"
+              />
+            </div>
+            <div
+              class="col-12 col-md-6 flex flex-center q-pa-md"
+              style="flex-direction: column; gap: 1rem"
+            >
+              <q-img
+                :src="apple"
+                style="max-width: 13.75rem; border-radius: 1.125rem; cursor: pointer"
+                @click="joinCommunityIphone"
+              />
+            </div>
+          </div>
         </div>
         <div class="col-12 col-md-6 flex flex-center q-pa-md">
-          <q-img :src="appMockup2" style="max-width: 220px; border-radius: 18px" />
+          <q-img
+            :src="group"
+            style="
+              width: 90vw;
+              max-width: 40rem;
+              height: 60vh;
+              object-fit: contain;
+              border-radius: 1.125rem;
+            "
+          />
         </div>
       </div>
     </section>
@@ -136,9 +175,12 @@
 </template>
 
 <script lang="ts" setup>
-import cyclistImg from 'src/assets/bicity-logo.svg';
-import appMockup1 from 'src/assets/lost-svgrepo-com.svg';
-import appMockup2 from 'src/assets/fall-down-the-stairs-falling-down-svgrepo-com.svg';
+// Imagens
+import ride from 'src/assets/home/bike-ride.svg';
+import group from 'src/assets/home/bike-group-image.svg';
+import google from 'src/assets/home/google-play-download.svg';
+import apple from 'src/assets/home/apple-store-download.svg';
+
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useTheme } from 'src/composables/useTheme';
 
@@ -182,11 +224,19 @@ const impacts = [
 
 const showScrollTop = ref(false);
 
-function handleScroll() {
+const handleScroll = () => {
   const scrollY = window.scrollY || window.pageYOffset;
   const halfPage = document.documentElement.scrollHeight / 2;
   showScrollTop.value = scrollY > halfPage;
-}
+};
+
+const joinCommunityAndroid = () => {
+  window.open('https://play.google.com/store/apps/details?id=com.bicity', '_blank');
+};
+
+const joinCommunityIphone = () => {
+  window.open('https://apps.apple.com/app/bicity/id1234567890', '_blank');
+};
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll);
@@ -196,7 +246,7 @@ onUnmounted(() => {
 });
 
 const scrollToTop = () => {
-  const duration = 1200; // duração em ms (mais lento)
+  const duration = 1200;
   const start = window.scrollY || window.pageYOffset;
   const startTime = performance.now();
 
@@ -216,6 +266,18 @@ const scrollToTop = () => {
 <style scoped>
 .home-content-bg {
   min-height: 100vh;
+  min-width: 300px;
+  font-size: 1.5rem;
+}
+
+.home-content-bg section {
+  border-radius: 0.3rem;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .bg-purple-light {
@@ -253,5 +315,32 @@ footer {
 .footer-dark {
   background: #181818;
   color: #e0e0e0;
+}
+.hero-section,
+.group-section {
+  min-height: 400px;
+}
+.hero-img-col,
+.group-img-col {
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+}
+.hero-img,
+.group-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 1.125rem;
+}
+
+.q-img[style*='max-width: 220px'] {
+  max-width: 13.75rem !important;
+  border-radius: 1.125rem !important;
+}
+
+.q-img[style*='max-width: 320px'] {
+  max-width: 20rem !important;
+  border-radius: 1.125rem !important;
 }
 </style>

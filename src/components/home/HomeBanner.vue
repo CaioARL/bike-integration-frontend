@@ -7,7 +7,7 @@
     >
       <q-card-section class="flex flex-center">
         <img
-          src="src/assets/bicity-logo.svg"
+          src="src/assets/home/bicity-logo.svg"
           alt="Bicity Logo"
           class="q-mb-md"
           style="max-width: 60vw; max-height: 25vh"
